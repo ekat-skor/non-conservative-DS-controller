@@ -62,3 +62,12 @@ CATKIN_IGNORE
 
 ros_ws/build
 ros_ws/devel 
+
+ros_ws/src/easy_kinesthetic_recording
+ros_ws/src/record_ros
+ros_ws/src/rosbag_to_mat
+
+ros_ws/.catkin_workspace
+ros_ws/src/.rosinstall
+ros_ws/src/.rosinstall.bak
+ros_ws/src/franka_interactive_controllers/.rosinstall
