@@ -57,10 +57,23 @@ This will trigger the docker build and deploy process and it should end up with 
 ### Compile the Code
 
 Once inside the container, you can go into the ros workspace and compile the code. The source file is already added into the system wide bash so you dont have to source the ros setup file.
+``` bash
+cd ros_ws
+catkin_make
 
+source devel/setup.bash
+```
 
 ## Usage
 
+Once the code is built, you can source the environment and run the launch files to start the simulation or run the franka panda robot
+
 ## Running the sim
+``` bash
+roslaunch franka_interactive_controllers simulate_panda_gazebo.launch
+```
 
 ## Running on franka panda
+``` bash
+roslaunch franka_interactive_controllers franka_interactive_bringup.launch
+```
