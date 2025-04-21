@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.launch": "xml",
+        "*.launch.xml": "xml",
+        "*.test": "xml",
+        "*.urdf.xacro": "xml",
+        "*.urdf": "xml",
+        "model.config": "xml",
+        "*.sdf": "xml",
+        "*.world": "xml",
+        "core": "cpp",
+        "complex": "cpp"
+    }
+}
