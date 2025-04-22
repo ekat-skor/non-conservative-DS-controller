@@ -1,10 +1,13 @@
 #!/usr/bin/env python
+from lpvds.gmm_class import gmm_class
+from lpvds.se3_class import se3_class
 import rospy
 import json
 import numpy as np
 from geometry_msgs.msg import Pose, Twist
 from scipy.spatial.transform import Rotation as R
-import os, sys
+import os
+import sys
 
 # ensure your package src/ is on the path
 sys.path.insert(
@@ -12,12 +15,11 @@ sys.path.insert(
     os.path.abspath(os.path.join(__file__, '..', '..', 'src'))
 )
 
-from lpvds.se3_class import se3_class
-from lpvds.gmm_class import gmm_class
 
 # -----------------------------------------------------------------------------
 # Helper: load trained SE3-LPVDS model from JSON
 # -----------------------------------------------------------------------------
+
 def load_trained_se3(json_path: str) -> se3_class:
     """
     Load a previously-trained SE3-LPVDS model from JSON and initialize
@@ -26,17 +28,17 @@ def load_trained_se3(json_path: str) -> se3_class:
     """
     with open(json_path, 'r') as f:
         data = json.load(f)
-    K  = data['K']
+    K = data['K']
     dt = data['dt']
 
     se3 = se3_class.__new__(se3_class)
-    se3.K_init   = K
-    se3.dt       = dt
-    se3.p_att    = np.array(data['att_pos'])
-    se3.q_att    = R.from_quat(data['att_ori'])
-    se3.tol      = 1e-2
+    se3.K_init = K
+    se3.dt = dt
+    se3.p_att = np.array(data['att_pos'])
+    se3.q_att = R.from_quat(data['att_ori'])
+    se3.tol = 1e-2
     se3.max_iter = 5000
-    se3.N        = 7  # pos(3)+quat(4)
+    se3.N = 7  # pos(3)+quat(4)
 
     se3.A_pos = np.array(data['A_pos']).reshape((2*K, 3, 3))
     se3.A_ori = np.array(data['A_ori']).reshape((2*K, 4, 4))
@@ -55,7 +57,8 @@ def load_trained_se3(json_path: str) -> se3_class:
     se3.p_init = np.array(p_init_proc[0])
     se3.q_init = q_init_proc[0]
     rospy.loginfo(f"SE3 model initial position: {se3.p_init}")
-    rospy.loginfo(f"SE3 model initial orientation (quat): {se3.q_init.as_quat()}")
+    rospy.loginfo(
+        f"SE3 model initial orientation (quat): {se3.q_init.as_quat()}")
 
     p_in_roll, q_in_roll, _, _ = process_tools.rollout_list(
         p_in_proc, q_in_proc, p_out_proc, q_out_proc)
@@ -68,13 +71,15 @@ def load_trained_se3(json_path: str) -> se3_class:
 # -----------------------------------------------------------------------------
 # ROS Node: uses trained DS to publish desired twists
 # -----------------------------------------------------------------------------
+
+
 class LPVDSNode(object):
     def __init__(self):
         rospy.init_node('lpvds_node')
 
         # Load trained model
         model_path = rospy.get_param('~model_path',
-            os.path.join(os.path.dirname(__file__), '..', 'output.json'))
+                                     os.path.join(os.path.dirname(__file__), '..', 'output.json'))
         rospy.loginfo(f"Loading trained LPVDS model from: {model_path}")
         self.se3 = load_trained_se3(model_path)
 
@@ -101,6 +106,7 @@ class LPVDSNode(object):
 
         # Storage for latest EE pose
         self.current_pose = None
+        self.log_data = []  # List to store logs of each timestep
         rospy.Subscriber(
             '/franka_state_controller/ee_pose', Pose,
             self._pose_callback, queue_size=1)
@@ -108,6 +114,8 @@ class LPVDSNode(object):
         # Timer @100 Hz
         self.timer = rospy.Timer(
             rospy.Duration(0.01), self.timer_cb)
+
+        rospy.on_shutdown(self.save_logs)
 
     def _pose_callback(self, msg: Pose):
         self.current_pose = msg
@@ -130,6 +138,29 @@ class LPVDSNode(object):
         cmd.linear.x, cmd.linear.y, cmd.linear.z = v
         cmd.angular.x, cmd.angular.y, cmd.angular.z = w
         self.cmd_pub.publish(cmd)
+        # Compute errors
+        pos_error = np.linalg.norm(p_cur - self.se3.p_att)
+        quat_diff = R.inv(self.se3.q_att) * q_cur
+        ori_error = quat_diff.magnitude()  # Angle between quaternions
+
+        # Log data
+        self.log_data.append({
+            'time': rospy.get_time(),
+            'p_actual': p_cur.tolist(),
+            'q_actual': q_cur.as_quat().tolist(),
+            'v_cmd': v,
+            'w_cmd': w,
+            'p_error': pos_error,
+            'q_error': ori_error
+        })
+
+
+def save_logs(self):
+    import json
+    with open('lpvds_run_log.json', 'w') as f:
+        json.dump(self.log_data, f, indent=2)
+    rospy.loginfo("Log data saved to lpvds_run_log.json")
+
 
 if __name__ == '__main__':
     node = LPVDSNode()
