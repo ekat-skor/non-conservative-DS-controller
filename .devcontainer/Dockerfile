@@ -18,6 +18,23 @@ RUN sudo apt-get update && sudo apt-get install -y \
     ros-noetic-franka-ros \
     && sudo rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip first
+RUN python3 -m pip install --upgrade pip
+
+# Install exactly the versions you listed
+RUN pip install \
+    "numpy>=1.21.5" \
+    "scipy>=1.10.1" \
+    "matplotlib>=3.7.0" \
+    "scikit-learn>=1.3" \
+    "gmr==1.6.2" \
+    "pyLasaDataset==0.1.1" \
+    "casadi==3.6.3" \
+    "cvxpy>=1.3.2" \
+    "dtw-python==1.3.0" \
+    "mosek>=10.0.34"
+
+
 # # Set environment variables
 # ENV DEBIAN_FRONTEND=noninteractive
 # ENV LIBFRANKA_VERSION=0.9.0

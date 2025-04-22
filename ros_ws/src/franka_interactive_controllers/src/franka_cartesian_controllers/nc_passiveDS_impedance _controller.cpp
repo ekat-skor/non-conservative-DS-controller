@@ -47,6 +47,7 @@ PassiveDS::PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVa
 
 PassiveDS::~PassiveDS(){}
 
+
 void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
     if((lam0 > 0)&&(lam1 > 0)){
         eigVal0 = lam0;
@@ -58,16 +59,23 @@ void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
         std::cerr << "wrong values for the eigenvalues"<<"\n";
     }
 }
+
+
 void PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){ 
 
+    // ref_vel --> e_1 = ref_vel/||ref_vel|| = f(x)/||f(x)||
+
     if(ref_vel.norm() > 1e-6){
-        baseMat.setRandom();
-        baseMat.col(0) = ref_vel.normalized();
+        baseMat.setRandom(); // to initialize the basis 
+        baseMat.col(0) = ref_vel.normalized(); // first column of Q is e_1 normalized 
+
+        //use Gram Schmidt to build the orthonormal basis 
         for(uint i=1;i<3;i++){
             for(uint j=0;j<i;j++)
                 baseMat.col(i) -= baseMat.col(j).dot(baseMat.col(i))*baseMat.col(j);
             baseMat.col(i).normalize();
         }
+        // final built damping matrix: D = QLambdaQ^T
         Dmat = baseMat*damping_eigval*baseMat.transpose();
     }else{
         Dmat = Eigen::Matrix3d::Identity();
@@ -75,6 +83,8 @@ void PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
     // otherwise just use the last computed basis
 }
 
+
+// UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
 void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
     // compute damping
     updateDampingMatrix(des_vel);
@@ -82,6 +92,7 @@ void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_ve
     control_output = - Dmat * vel;
     // compute control
     control_output += eigVal0*des_vel;
+// --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
 }
 Eigen::Vector3d PassiveDS::get_output(){ return control_output;}
 
@@ -251,7 +262,9 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
       damping_eigvals_yaml_[i] = damping_eigvals.at(i);
     ROS_INFO_STREAM("Damping Matrix Eigenvalues (from YAML): " << damping_eigvals_yaml_);
   }
-  // Initialize Passive DS controller
+
+
+  // Initialize Passive DS controller -- linear
   damping_eigval0_ = damping_eigvals_yaml_(0);
   damping_eigval1_ = damping_eigvals_yaml_(1);
   passive_ds_controller = std::make_unique<PassiveDS>(100., 100.);
@@ -272,7 +285,9 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
       ang_damping_eigvals_yaml_[i] = damping_eigvals.at(i);
     ROS_INFO_STREAM("Angular Damping Matrix Eigenvalues (from YAML): " << ang_damping_eigvals_yaml_);
   }
-  // Initialize Passive DS controller
+
+
+  // Initialize Passive DS controller -- angular
   ang_damping_eigval0_ = ang_damping_eigvals_yaml_(0);
   ang_damping_eigval1_ = ang_damping_eigvals_yaml_(1);
   ang_passive_ds_controller = std::make_unique<PassiveDS>(5., 5.);
@@ -341,6 +356,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   return true;
 }
 
+// get the initial robot state and initialize desired position/orientation 
 void PassiveDSImpedanceController::starting(const ros::Time& /*time*/) {
 
   // Get robot current/initial joint state
@@ -387,10 +403,12 @@ void PassiveDSImpedanceController::starting(const ros::Time& /*time*/) {
 }
 
 
+// actually gets the current state of the robot and computes torques to send to robot 
 void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
                                                  const ros::Duration& period) {
   // get state variables
-  franka::RobotState robot_state = state_handle_->getRobotState();
+  franka::RobotState robot_state = state_handle_->getRobotState(); // current robot state should be published to lpvds 
+
   std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
   std::array<double, 42> jacobian_array =
       model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
@@ -418,7 +436,7 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   velocity_desired_.setZero();
   velocity_desired_.head(3) << velocity_d_;
 
-  // Check velocity command
+  // Check velocity command -- safety feature: if new velocity command isn't recieved then desired velocity = 0
   elapsed_time += period;
   if(ros::Time::now().toSec() - last_cmd_time > vel_cmd_timeout){
     ROS_WARN_STREAM_THROTTLE(1, "No velocity command! Setting it to ZERO");
@@ -477,6 +495,8 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   real_damping_eigval0_ = velocity_d_.norm()<0.00001 ? 0.1 : real_damping_eigval0_;
   real_damping_eigval1_ = velocity_d_.norm()<0.00001 ? 0.1 : real_damping_eigval1_;
 
+
+// take measured and desired velocities and feed them into the DS controller 
   passive_ds_controller->set_damping_eigval(real_damping_eigval0_,real_damping_eigval1_);
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_);
   F_linear_des_ << passive_ds_controller->get_output(); 
@@ -508,6 +528,7 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   if (tmp_angular_vel.norm() > maxDq)
       tmp_angular_vel = maxDq * tmp_angular_vel.normalized();
   double theta_gq = (-.5/(4*maxDq*maxDq)) * tmp_angular_vel.transpose() * tmp_angular_vel;
+
   dx_angular_des_  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
 
   ROS_WARN_STREAM_THROTTLE(0.5, "Desired Angular Velocity Norm:" << dx_angular_des_.norm());

@@ -113,4 +113,13 @@
   <include file="$(find franka_interactive_controllers)/launch/passiveDS_impedance_controller.launch" if="$(eval arg('controller') == 'passiveDS_impedance')">
   </include>
 
+    <!-- automatically load & start the franka_state_controller on launch -->
+  <node pkg="controller_manager"
+        type="spawner"
+        name="franka_state_controller_spawner"
+        respawn="false" output="screen"
+        args="franka_state_controller"/>
+
+  
+
 </launch>
