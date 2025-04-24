@@ -4,132 +4,277 @@ import json
 import numpy as np
 from geometry_msgs.msg import Pose, Twist
 from scipy.spatial.transform import Rotation as R
-import os, sys
+from scipy.stats import multivariate_normal
+import os
+import sys
 
-# ensure your package src/ is on the path
+# bring your package src/ onto PYTHONPATH
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(__file__, '..', '..', 'src'))
 )
 
-from lpvds.se3_class import se3_class
-from lpvds.gmm_class import gmm_class
+# import your utility functions for quaternion operations
+from lpvds.util.quat_tools import riem_log, riem_exp, parallel_transport
 
-# -----------------------------------------------------------------------------
-# Helper: load trained SE3-LPVDS model from JSON
-# -----------------------------------------------------------------------------
-def load_trained_se3(json_path: str) -> se3_class:
-    """
-    Load a previously-trained SE3-LPVDS model from JSON and initialize
-    the LPV-DS object (including clustering) for real-time _step().
-    Also stores the initial pose from the training data.
-    """
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-    K  = data['K']
-    dt = data['dt']
 
-    se3 = se3_class.__new__(se3_class)
-    se3.K_init   = K
-    se3.dt       = dt
-    se3.p_att    = np.array(data['att_pos'])
-    se3.q_att    = R.from_quat(data['att_ori'])
-    se3.tol      = 1e-2
-    se3.max_iter = 5000
-    se3.N        = 7  # pos(3)+quat(4)
-
-    se3.A_pos = np.array(data['A_pos']).reshape((2*K, 3, 3))
-    se3.A_ori = np.array(data['A_ori']).reshape((2*K, 4, 4))
-
-    # Re-run preprocessing to reconstruct GMM
-    from lpvds.util import load_tools, process_tools
-    p_raw, q_raw, t_raw, dt_raw = load_tools.load_demo_dataset()
-    p_in_proc, q_in_proc, t_in_proc = process_tools.pre_process(
-        p_raw, q_raw, t_raw, opt="savgol")
-    p_out_proc, q_out_proc = process_tools.compute_output(
-        p_in_proc, q_in_proc, t_in_proc)
-    p_init_proc, q_init_proc, _, _ = process_tools.extract_state(
-        p_in_proc, q_in_proc)
-
-    # Fix: store initial pose as numpy arrays, not lists
-    se3.p_init = np.array(p_init_proc[0])
-    se3.q_init = q_init_proc[0]
-    rospy.loginfo(f"SE3 model initial position: {se3.p_init}")
-    rospy.loginfo(f"SE3 model initial orientation (quat): {se3.q_init.as_quat()}")
-
-    p_in_roll, q_in_roll, _, _ = process_tools.rollout_list(
-        p_in_proc, q_in_proc, p_out_proc, q_out_proc)
-    se3.p_in = p_in_roll
-    se3.q_in = q_in_roll
-    se3.K_init = K
-    se3._cluster()
-    return se3
-
-# -----------------------------------------------------------------------------
-# ROS Node: uses trained DS to publish desired twists
-# -----------------------------------------------------------------------------
 class LPVDSNode(object):
     def __init__(self):
         rospy.init_node('lpvds_node')
 
-        # Load trained model
-        model_path = rospy.get_param('~model_path',
-            os.path.join(os.path.dirname(__file__), '..', 'output.json'))
-        rospy.loginfo(f"Loading trained LPVDS model from: {model_path}")
-        self.se3 = load_trained_se3(model_path)
-
-        # Publisher for commanded twist
+        # publisher for commanded twist
         self.cmd_pub = rospy.Publisher(
             '/passiveDS/desired_twist', Twist, queue_size=1)
 
-        # Publish initial twist to drive to the demo start pose
-        p_init = self.se3.p_init
-        q_init = self.se3.q_init
-        p_in = p_init.reshape(1, -1)
-        _, _, _, v_col, w_col = self.se3._step(p_in, q_init, self.se3.dt)
-        v_init = v_col.flatten().tolist()
-        w_init = w_col.flatten().tolist()
-        # cmd_init = Twist()
-        # cmd_init.linear.x, cmd_init.linear.y, cmd_init.linear.z = v_init
-        # cmd_init.angular.x, cmd_init.angular.y, cmd_init.angular.z = w_init
-        # rospy.loginfo("Publishing initial twist to reach start pose...")
-        # for _ in range(20):
-        #     self.cmd_pub.publish(cmd_init)
-        #     rospy.sleep(0.05)
-        # rospy.sleep(10.0)
-        # rospy.loginfo("Reached init pose")
-
-        # Storage for latest EE pose
+        # subscriber for actual end-effector pose
         self.current_pose = None
         rospy.Subscriber(
             '/franka_state_controller/ee_pose', Pose,
             self._pose_callback, queue_size=1)
 
-        # Timer @100 Hz
-        self.timer = rospy.Timer(
-            rospy.Duration(0.01), self.timer_cb)
+        # load all LPV-DS parameters from JSON
+        model_path = rospy.get_param('~model_json',
+                                     '/path/to/default/SE3-LPVDS.json')
+        self.load_trained_lpvds(model_path)
+
+        # fire at 100 Hz
+        self.timer = rospy.Timer(rospy.Duration(0.01), self.timer_cb)
+
 
     def _pose_callback(self, msg: Pose):
         self.current_pose = msg
 
+
+    def load_trained_lpvds(self, json_path: str):
+        """
+        Read your SE3-LPVDS JSON and pull out exactly the pieces needed by
+        step_linear() and step_angular().
+        """
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        # number of mixture components for *each* half of orientation
+        self.K  = data['K']               
+        self.dt = data['dt']              
+
+        # mixing weights, shape=(2*K,)
+        self.priors = np.array(data['Prior'])
+
+        # Mu may pack both position and orientation in one vector
+        Mu = np.array(data['Mu'])
+        C  = self.priors.size            
+        D  = Mu.size // C                
+        Mu = Mu.reshape((C, D))
+        if D == 7:
+            # first 3 dims = position means, last 4 = quaternion means
+            self.mu_pos = Mu[:, :3]
+            self.mu_ori = Mu[:, 3:]
+        elif D == 3:
+            self.mu_pos = Mu
+            self.mu_ori = None
+        else:
+            raise RuntimeError(f"Unexpected Mu dimension D={D}")
+
+        # covariance: flatten list → (C,D,D)
+        Sigma = np.array(data['Sigma'])
+        Sdim  = int(np.sqrt(Sigma.size / C))
+        self.sigmas = Sigma.reshape((C, Sdim, Sdim))
+
+        # the A matrices for position and orientation
+        self.A_pos = np.array(data['A_pos']).reshape((C, 3, 3))
+        self.A_ori = np.array(data['A_ori']).reshape((C, 4, 4))
+
+        # attractor (goal) in position and orientation
+        self.att_pos = np.array(data['att_pos'])          
+        self.att_ori = R.from_quat(data['att_ori'])       
+
+        rospy.loginfo(f"Loaded SE3-LPVDS with K={self.K}, dt={self.dt}")
+
+
+    def compute_logprob(self, x, pis, means, covs):
+        """
+        Vectorized log-posterior probability for a Gaussian mixture:
+        x: shape (N, D)
+        means: shape (K, D)
+        covs: shape (K, D', D') where D' >= D
+        pis: shape (K,)
+        """
+        K, D = means.shape
+        # trim covariances if they are larger than D
+        if covs.shape[1] != D:
+            covs = covs[:, :D, :D]
+
+        # invert and det all K covs
+        cov_inv = np.linalg.inv(covs)     
+        cov_det = np.linalg.det(covs)     
+
+        # center data
+        centered_x = x[np.newaxis, :, :] - means[:, np.newaxis, :]
+
+        # exponent term: shape (K, N)
+        exponent = -0.5 * np.einsum(
+            'kni,kij,knj->kn',
+            centered_x, cov_inv, centered_x
+        )
+
+        # normalization constant
+        log_coeff = -0.5 * (
+            D * np.log(2 * np.pi) + np.log(cov_det)
+        ).reshape(-1, 1)
+
+        log_pdf = log_coeff + exponent
+        log_pis = np.log(pis).reshape(-1, 1)  # (K, 1)
+        logProb = log_pis + log_pdf           # (K, N)
+
+        # posterior probabilities
+        maxPost = np.max(logProb, axis=0, keepdims=True)
+        expPost = np.exp(logProb - maxPost)
+        postProb = expPost / np.sum(expPost, axis=0, keepdims=True)
+
+        return postProb
+
+
+    def step_linear(self, curr_x, Priors, Mu, Sigma, As, goal):
+        """
+        LPV-DS linear component: returns a 3-vector velocity
+        """
+        linear_vel = np.zeros(3)
+        # use only the 3×3 sub-blocks of Sigma for position
+        Sigma_pos = Sigma[:, :3, :3]
+        gamma = self.compute_logprob(
+            curr_x.reshape(1, -1),
+            Priors, Mu, Sigma_pos
+        )
+        for k in range(len(gamma)):
+            linear_vel += (gamma[k] * (As[k] @ (curr_x - goal))).flatten()
+        return linear_vel
+
+
+    def logProb(self, q_in, K, priors, mus, sigmas):
+        """
+        Compute posterior probabilities for quaternion mixture.
+        q_in: scipy Rotation or list thereof
+        """
+        # ensure covariances match quaternion dim=4
+        D = mus.shape[1]
+        if sigmas.shape[1] != D:
+            sigmas = sigmas[:, -D:, -D:]
+
+        # prepare output shape
+        if isinstance(q_in, list):
+            logProb = np.zeros((2*K, len(q_in)))
+        else:
+            logProb = np.zeros((2*K, 1))
+
+        # first K components
+        for k in range(K):
+            prior_k = priors[k]
+            mu_k    = R.from_quat(mus[k])
+            normal_k = multivariate_normal(
+                np.zeros(D), sigmas[k], allow_singular=True
+            )
+            q_k = riem_log(mu_k, q_in)
+            logProb[k, :] = np.log(prior_k) + normal_k.logpdf(q_k)
+
+        # dual-quaternion half
+        for k in range(K):
+            prior_k = priors[K+k]
+            mu_k    = R.from_quat(mus[K+k])
+            normal_k = multivariate_normal(
+                np.zeros(D), sigmas[K+k], allow_singular=True
+            )
+            q_k = riem_log(mu_k, q_in)
+            logProb[K+k, :] = np.log(prior_k) + normal_k.logpdf(q_k)
+
+        # posterior normalization
+        maxPost = np.max(logProb, axis=0, keepdims=True)
+        expPost = np.exp(logProb - maxPost)
+        postProb = expPost / np.sum(expPost, axis=0, keepdims=True)
+
+        return postProb
+
+
+    def compute_ang_vel(self, q_k, q_kp1, dt=0.01):
+        """
+        Compute angular velocity from two quaternions
+        """
+        dq = q_kp1 * q_k.inv()
+        rotvec = dq.as_rotvec()
+        return rotvec / dt
+
+
+    def step_angular(self, q_in, K, priors, mus, sigmas, q_att, A_ori, dt):
+        """
+        LPV-DS angular component: returns a 3-vector omega
+        """
+        gamma = self.logProb(q_in, K, priors, mus, sigmas)
+
+        # primary cover
+        q_diff = riem_log(q_att, q_in)
+        q_out_att = sum(
+            gamma[k, 0] * (A_ori[k] @ q_diff.T)
+            for k in range(K)
+        )
+        q_out_body = parallel_transport(q_att, q_in, q_out_att.T)
+        q_out_q    = riem_exp(q_in, q_out_body)
+        q_out      = R.from_quat(q_out_q.reshape(4,))
+        omega      = self.compute_ang_vel(q_in, q_out, dt)
+
+        # dual cover
+        q_att_dual = R.from_quat(-q_att.as_quat())
+        q_diff_dual = riem_log(q_att_dual, q_in)
+        q_out_att_dual = sum(
+            gamma[K+k, 0] * (A_ori[K+k] @ q_diff_dual.T)
+            for k in range(K)
+        )
+        q_out_body_dual = parallel_transport(q_att_dual, q_in, q_out_att_dual.T)
+        q_out_q_dual    = riem_exp(q_in, q_out_body_dual)
+        q_out_dual      = R.from_quat(q_out_q_dual.reshape(4,))
+        omega         += self.compute_ang_vel(q_in, q_out_dual, dt)
+
+        return omega
+
+
     def timer_cb(self, event):
+        # wait for first pose
         if self.current_pose is None:
-            rospy.logwarn_throttle(5.0, "No EE pose received yet")
             return
-        p = self.current_pose.position
-        o = self.current_pose.orientation
-        p_cur = np.array([p.x, p.y, p.z])
-        q_cur = R.from_quat([o.x, o.y, o.z, o.w])
 
-        p_in = p_cur.reshape(1, -1)
-        _, _, _, v_col, w_col = self.se3._step(p_in, q_cur, self.se3.dt)
+        # extract current position & orientation
+        pos = self.current_pose.position
+        x   = np.array([pos.x, pos.y, pos.z])
 
-        v = v_col.flatten().tolist()
-        w = w_col.flatten().tolist()
+        ori = self.current_pose.orientation
+        q   = R.from_quat([ori.x, ori.y, ori.z, ori.w])
+
+        # linear LPV-DS
+        lin_vel = self.step_linear(
+            x,
+            self.priors,
+            self.mu_pos,
+            self.sigmas,
+            self.A_pos,
+            self.att_pos
+        )
+
+        # angular LPV-DS
+        ang_vel = self.step_angular(
+            q,
+            self.K,
+            self.priors,
+            self.mu_ori,
+            self.sigmas,
+            self.att_ori,
+            self.A_ori,
+            self.dt
+        )
+
+        # publish as Twist
         cmd = Twist()
-        cmd.linear.x, cmd.linear.y, cmd.linear.z = v
-        cmd.angular.x, cmd.angular.y, cmd.angular.z = w
+        cmd.linear.x, cmd.linear.y, cmd.linear.z = lin_vel
+        cmd.angular.x, cmd.angular.y, cmd.angular.z = ang_vel
         self.cmd_pub.publish(cmd)
+
 
 if __name__ == '__main__':
     node = LPVDSNode()

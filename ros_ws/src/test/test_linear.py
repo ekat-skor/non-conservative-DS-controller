@@ -31,7 +31,7 @@ def main():
     
     # Global attractor (x*): by default at the origin.
     # x_star = np.array([0.5, 0.3, 0.5])  
-    x_star = np.array([0.3, -0.5, 0.4])
+    x_star = np.array([0.56245899, -0.03973889,  0.17202399])
     
     if ds_case == 1:
         # Define a linear DS: x_dot = A*(x-x*)

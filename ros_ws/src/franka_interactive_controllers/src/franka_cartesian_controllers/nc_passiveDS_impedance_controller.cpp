@@ -3,7 +3,7 @@
 // Use of this source code is governed by the Apache-2.0 license.
 // Current development and modification of this code by Nadia Figueroa (MIT) 2021.
 
-#include <passiveDS_impedance_controller.h>
+#include <nc_passiveDS_impedance_controller.h>
 
 #include <cmath>
 #include <memory>
@@ -22,7 +22,7 @@
 
 namespace franka_interactive_controllers {
 //*************************************************************************************
-// PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
+// nc_PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
 //|
 //|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
 //|    Authors:  Farshad Khadivr (maintainer)
@@ -41,14 +41,14 @@ namespace franka_interactive_controllers {
 //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //|    GNU General Public License for more details.
 //|
-PassiveDS::PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1){
+nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1){
     set_damping_eigval(lam0,lam1);
 }
 
-PassiveDS::~PassiveDS(){}
+nc_PassiveDS::~nc_PassiveDS(){}
 
 
-void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
+void nc_PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
     if((lam0 > 0)&&(lam1 > 0)){
         eigVal0 = lam0;
         eigVal1 = lam1;
@@ -61,7 +61,7 @@ void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
 }
 
 
-void PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){ 
+void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){ 
 
     // ref_vel --> e_1 = ref_vel/||ref_vel|| = f(x)/||f(x)||
 
@@ -85,42 +85,42 @@ void PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 
 
 // UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
-void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
+void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
     // compute damping
     updateDampingMatrix(des_vel);
     // dissipate
     control_output = - Dmat * vel;
     // compute control
-    control_output += eigVal0*des_vel;
+    control_output += eigVal0 * des_vel;
 // --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
 }
-Eigen::Vector3d PassiveDS::get_output(){ return control_output;}
+Eigen::Vector3d nc_PassiveDS::get_output(){ return control_output;}
 
 //*************************************************************************************
 
-bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
+bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
                                                ros::NodeHandle& node_handle) {
 
 
   // *********  Subscribers   ********* //
   sub_desired_twist_ = node_handle.subscribe(
-      "/passiveDS/desired_twist", 20, &PassiveDSImpedanceController::desiredTwistCallback, this,
+      "/passiveDS/desired_twist", 20, &nc_PassiveDSImpedanceController::desiredTwistCallback, this,
       ros::TransportHints().reliable().tcpNoDelay());
 
   sub_desired_damping_  = node_handle.subscribe(
-      "/passiveDS/desired_damp_eigval", 1000, &PassiveDSImpedanceController::desiredDampingCallback, this,
+      "/passiveDS/desired_damp_eigval", 1000, &nc_PassiveDSImpedanceController::desiredDampingCallback, this,
       ros::TransportHints().reliable().tcpNoDelay());
 
   // Getting ROSParams
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
-    ROS_ERROR_STREAM("PassiveDSImpedanceController: Could not read parameter arm_id");
+    ROS_ERROR_STREAM("nc_PassiveDSImpedanceController: Could not read parameter arm_id");
     return false;
   }
   std::vector<std::string> joint_names;
   if (!node_handle.getParam("joint_names", joint_names) || joint_names.size() != 7) {
     ROS_ERROR(
-        "PassiveDSImpedanceController: Invalid or no joint_names parameters provided, "
+        "nc_PassiveDSImpedanceController: Invalid or no joint_names parameters provided, "
         "aborting controller init!");
     return false;
   }
@@ -129,7 +129,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   auto* model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
   if (model_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PassiveDSImpedanceController: Error getting model interface from hardware");
+        "nc_PassiveDSImpedanceController: Error getting model interface from hardware");
     return false;
   }
   try {
@@ -137,7 +137,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
         model_interface->getHandle(arm_id + "_model"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
     ROS_ERROR_STREAM(
-        "PassiveDSImpedanceController: Exception getting model handle from interface: "
+        "nc_PassiveDSImpedanceController: Exception getting model handle from interface: "
         << ex.what());
     return false;
   }
@@ -145,7 +145,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   auto* state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
   if (state_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PassiveDSImpedanceController: Error getting state interface from hardware");
+        "nc_PassiveDSImpedanceController: Error getting state interface from hardware");
     return false;
   }
   try {
@@ -153,7 +153,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
         state_interface->getHandle(arm_id + "_robot"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
     ROS_ERROR_STREAM(
-        "PassiveDSImpedanceController: Exception getting state handle from interface: "
+        "nc_PassiveDSImpedanceController: Exception getting state handle from interface: "
         << ex.what());
     return false;
   }
@@ -161,7 +161,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   auto* effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
   if (effort_joint_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PassiveDSImpedanceController: Error getting effort joint interface from hardware");
+        "nc_PassiveDSImpedanceController: Error getting effort joint interface from hardware");
     return false;
   }
   for (size_t i = 0; i < 7; ++i) {
@@ -169,7 +169,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
       joint_handles_.push_back(effort_joint_interface->getHandle(joint_names[i]));
     } catch (const hardware_interface::HardwareInterfaceException& ex) {
       ROS_ERROR_STREAM(
-          "PassiveDSImpedanceController: Exception getting joint handles: " << ex.what());
+          "nc_PassiveDSImpedanceController: Exception getting joint handles: " << ex.what());
       return false;
     }
   }
@@ -205,7 +205,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   std::vector<double> cartesian_stiffness_setpoint_ctrl_yaml;
   if (!node_handle.getParam("cartesian_stiffness_setpoint_ctrl", cartesian_stiffness_setpoint_ctrl_yaml) || cartesian_stiffness_setpoint_ctrl_yaml.size() != 6) {
     ROS_ERROR(
-      "PassiveDSImpedanceController: Invalid or no cartesian_stiffness_setpoint_ctrl parameters provided, "
+      "nc_PassiveDSImpedanceController: Invalid or no cartesian_stiffness_setpoint_ctrl parameters provided, "
       "aborting controller init!");
     return false;
   }
@@ -215,7 +215,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   std::vector<double> cartesian_stiffness_grav_comp_yaml;
   if (!node_handle.getParam("cartesian_stiffness_grav_comp", cartesian_stiffness_grav_comp_yaml) || cartesian_stiffness_grav_comp_yaml.size() != 6) {
     ROS_ERROR(
-      "PassiveDSImpedanceController: Invalid or no cartesian_stiffness_grav_comp parameters provided, "
+      "nc_PassiveDSImpedanceController: Invalid or no cartesian_stiffness_grav_comp parameters provided, "
       "aborting controller init!");
     return false;
   }
@@ -226,7 +226,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   cartesian_stiffness_mode_ = 1;
   if (!node_handle.getParam("cartesian_stiffness_mode", cartesian_stiffness_mode_)) {
     ROS_ERROR(
-      "PassiveDSImpedanceController: Invalid or no cartesian_stiffness_mode_ parameters provided, "
+      "nc_PassiveDSImpedanceController: Invalid or no cartesian_stiffness_mode_ parameters provided, "
       "aborting controller init!");
     return false;
   }
@@ -248,13 +248,13 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   ROS_INFO_STREAM("cartesian_stiffness_target_: " <<  cartesian_stiffness_target_);
   ROS_INFO_STREAM("cartesian_damping_target_: " << cartesian_damping_target_);
 
-  // Initialize PassiveDS params
+  // Initialize nc_PassiveDS params
   damping_eigvals_yaml_.setZero();
   std::vector<double> damping_eigvals;
   if (node_handle.getParam("linear_damping_eigenvalues", damping_eigvals)) {
     if (damping_eigvals.size() != 3) {
       ROS_ERROR(
-        "PassiveDSImpedanceController: Invalid or no linear_damping_eigenvalues parameters provided, "
+        "nc_PassiveDSImpedanceController: Invalid or no linear_damping_eigenvalues parameters provided, "
         "aborting controller init!");
       return false;
     }
@@ -267,17 +267,17 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   // Initialize Passive DS controller -- linear
   damping_eigval0_ = damping_eigvals_yaml_(0);
   damping_eigval1_ = damping_eigvals_yaml_(1);
-  passive_ds_controller = std::make_unique<PassiveDS>(100., 100.);
+  passive_ds_controller = std::make_unique<nc_PassiveDS>(100., 100.);
   passive_ds_controller->set_damping_eigval(damping_eigval0_,damping_eigval1_);
 
 
-  //**** Initialize ANGULAR PassiveDS params ****//
+  //**** Initialize ANGULAR nc_PassiveDS params ****//
   ang_damping_eigvals_yaml_.setZero();
   std::vector<double> ang_damping_eigvals;
   if (node_handle.getParam("angular_damping_eigenvalues", damping_eigvals)) {
     if (damping_eigvals.size() != 3) {
       ROS_ERROR(
-        "PassiveDSImpedanceController: Invalid or no angular_damping_eigenvalues parameters provided, "
+        "nc_PassiveDSImpedanceController: Invalid or no angular_damping_eigenvalues parameters provided, "
         "aborting controller init!");
       return false;
     }
@@ -290,14 +290,14 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   // Initialize Passive DS controller -- angular
   ang_damping_eigval0_ = ang_damping_eigvals_yaml_(0);
   ang_damping_eigval1_ = ang_damping_eigvals_yaml_(1);
-  ang_passive_ds_controller = std::make_unique<PassiveDS>(5., 5.);
+  ang_passive_ds_controller = std::make_unique<nc_PassiveDS>(5., 5.);
   ang_passive_ds_controller->set_damping_eigval(ang_damping_eigval0_,ang_damping_eigval1_);
 
 
   // Initialize nullspace params
   if (!node_handle.getParam("nullspace_stiffness", nullspace_stiffness_target_) || nullspace_stiffness_target_ <= 0) {
     ROS_ERROR(
-      "PassiveDSImpedanceController: Invalid or no nullspace_stiffness parameters provided, "
+      "nc_PassiveDSImpedanceController: Invalid or no nullspace_stiffness parameters provided, "
       "aborting controller init!");
     return false;
   }
@@ -306,7 +306,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   // Initialize nullspace params
   if (!node_handle.getParam("nullspace_stiffness", nullspace_stiffness_target_) || nullspace_stiffness_target_ <= 0) {
     ROS_ERROR(
-      "PassiveDSImpedanceController: Invalid or no nullspace_stiffness parameters provided, "
+      "nc_PassiveDSImpedanceController: Invalid or no nullspace_stiffness parameters provided, "
       "aborting controller init!");
     return false;
   }
@@ -319,7 +319,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   // tool_compensation_force_ << 0.46, -0.17, -1.64, 0, 0, 0;  //read from yaml
   if (!node_handle.getParam("external_tool_compensation", external_tool_compensation) || external_tool_compensation.size() != 6) {
       ROS_ERROR(
-          "PassiveDSImpedanceController: Invalid or no external_tool_compensation parameters provided, "
+          "nc_PassiveDSImpedanceController: Invalid or no external_tool_compensation parameters provided, "
           "aborting controller init!");
       return false;
     }
@@ -334,7 +334,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
     q_d_nullspace_initialized_ = true;
     if (q_nullspace.size() != 7) {
       ROS_ERROR(
-        "PassiveDSImpedanceController: Invalid or no q_nullspace parameters provided, "
+        "nc_PassiveDSImpedanceController: Invalid or no q_nullspace parameters provided, "
         "aborting controller init!");
       return false;
     }
@@ -350,14 +350,14 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   dynamic_server_passive_ds_param_ = std::make_unique<
     dynamic_reconfigure::Server<franka_interactive_controllers::passive_ds_paramConfig>>(dynamic_reconfigure_passive_ds_param_node_);
   dynamic_server_passive_ds_param_->setCallback(
-    boost::bind(&PassiveDSImpedanceController::passiveDSParamCallback, this, _1, _2));
+    boost::bind(&nc_PassiveDSImpedanceController::passiveDSParamCallback, this, _1, _2));
   dynamic_server_passive_ds_param_->getConfigDefault(config_cfg);
 
   return true;
 }
 
 // get the initial robot state and initialize desired position/orientation 
-void PassiveDSImpedanceController::starting(const ros::Time& /*time*/) {
+void nc_PassiveDSImpedanceController::starting(const ros::Time& /*time*/) {
 
   // Get robot current/initial joint state
   franka::RobotState initial_state = state_handle_->getRobotState();
@@ -404,7 +404,7 @@ void PassiveDSImpedanceController::starting(const ros::Time& /*time*/) {
 
 
 // actually gets the current state of the robot and computes torques to send to robot 
-void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
+void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
                                                  const ros::Duration& period) {
   // get state variables
   franka::RobotState robot_state = state_handle_->getRobotState(); // current robot state should be published to lpvds 
@@ -503,14 +503,14 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   F_ee_des_.head(3) = F_linear_des_;
   
   ROS_WARN_STREAM_THROTTLE(0.5, "Damping Eigenvalues:" << real_damping_eigval0_ << " " << real_damping_eigval0_);
-  ROS_WARN_STREAM_THROTTLE(0.5, "PassiveDS Linear Force:" << F_ee_des_.head(3).norm());
+  ROS_WARN_STREAM_THROTTLE(0.5, "nc_PassiveDS Linear Force:" << F_ee_des_.head(3).norm());
   desired_damp_eigval_cb_prev_ = desired_damp_eigval_cb_;
 
   // ------------------------------------------------------------------------//
   // ----------------- Orientation Error -> Force ---------------------------//
   // ------------------------------------------------------------------------//
 
-  //***** Using PassiveDS control law for angular velocity trackin given desired quaternion_d_ 
+  //***** Using nc_PassiveDS control law for angular velocity trackin given desired quaternion_d_ 
   Eigen::Vector4d _ee_quat; _ee_quat.setZero();
   _ee_quat[0] = orientation.w(); _ee_quat.segment(1,3) = orientation.vec();
   Eigen::Vector4d _ee_des_quat; _ee_des_quat.setZero();
@@ -539,7 +539,7 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   F_angular_des_ << ang_passive_ds_controller->get_output();
   F_ee_des_.tail(3) = F_angular_des_; 
   ROS_WARN_STREAM_THROTTLE(0.5, "Ang. Damping Eigenvalues:" << ang_damping_eigval0_ << " " << ang_damping_eigval1_);
-  ROS_WARN_STREAM_THROTTLE(0.5, "PassiveDS Angular Force:" << F_ee_des_.tail(3).norm());
+  ROS_WARN_STREAM_THROTTLE(0.5, "nc_PassiveDS Angular Force:" << F_ee_des_.tail(3).norm());
 
   // Convert full control wrench to torque
   tau_task << jacobian.transpose() * F_ee_des_;
@@ -596,7 +596,7 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   orientation_d_        = orientation_d_.slerp(filter_params_, orientation_d_target_);
 }
 
-Eigen::Matrix<double, 7, 1> PassiveDSImpedanceController::saturateTorqueRate(
+Eigen::Matrix<double, 7, 1> nc_PassiveDSImpedanceController::saturateTorqueRate(
     const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
     const Eigen::Matrix<double, 7, 1>& tau_J_d) {  // NOLINT (readability-identifier-naming)
   Eigen::Matrix<double, 7, 1> tau_d_saturated{};
@@ -608,7 +608,7 @@ Eigen::Matrix<double, 7, 1> PassiveDSImpedanceController::saturateTorqueRate(
   return tau_d_saturated;
 }
 
-void PassiveDSImpedanceController::passiveDSParamCallback(
+void nc_PassiveDSImpedanceController::passiveDSParamCallback(
     franka_interactive_controllers::passive_ds_paramConfig& config,
     uint32_t /*level*/) {
 
@@ -625,7 +625,7 @@ void PassiveDSImpedanceController::passiveDSParamCallback(
   }
 }
 
-void PassiveDSImpedanceController::desiredTwistCallback(
+void nc_PassiveDSImpedanceController::desiredTwistCallback(
     const geometry_msgs::TwistConstPtr& msg) {
 
   velocity_d_      << msg->linear.x, msg->linear.y, msg->linear.z;
@@ -641,7 +641,7 @@ void PassiveDSImpedanceController::desiredTwistCallback(
 
 }
 
-void PassiveDSImpedanceController::desiredDampingCallback(
+void nc_PassiveDSImpedanceController::desiredDampingCallback(
     const std_msgs::Float32Ptr& msg) {
     
     desired_damp_eigval_cb_ =  msg->data;
@@ -655,7 +655,7 @@ void PassiveDSImpedanceController::desiredDampingCallback(
 
 }  // namespace franka_interactive_controllers
 
-PLUGINLIB_EXPORT_CLASS(franka_interactive_controllers::PassiveDSImpedanceController,
+PLUGINLIB_EXPORT_CLASS(franka_interactive_controllers::nc_PassiveDSImpedanceController,
                        controller_interface::ControllerBase)
 
 

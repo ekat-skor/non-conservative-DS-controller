@@ -29,7 +29,7 @@
 namespace franka_interactive_controllers {
 
 //*************************************************************************************
-// PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
+// nc_PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
 //|
 //|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
 //|    Authors:  Farshad Khadivr (maintainer)
@@ -48,7 +48,7 @@ namespace franka_interactive_controllers {
 //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //|    GNU General Public License for more details.
 //|
-class PassiveDS
+class nc_PassiveDS
 {
 private:
     double eigVal0;
@@ -61,8 +61,8 @@ private:
     Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
     void updateDampingMatrix(const Eigen::Vector3d& ref_vel);
 public:
-    PassiveDS(const double& lam0, const double& lam1);
-    ~PassiveDS();
+    nc_PassiveDS(const double& lam0, const double& lam1);
+    ~nc_PassiveDS();
     void set_damping_eigval(const double& lam0, const double& lam1);
     void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel);
     Eigen::Vector3d get_output();
@@ -71,7 +71,7 @@ public:
 
 
 
-class PassiveDSImpedanceController : public controller_interface::MultiInterfaceController<
+class nc_PassiveDSImpedanceController : public controller_interface::MultiInterfaceController<
                                                 franka_hw::FrankaModelInterface,
                                                 hardware_interface::EffortJointInterface,
                                                 franka_hw::FrankaStateInterface> {
@@ -160,8 +160,8 @@ class PassiveDSImpedanceController : public controller_interface::MultiInterface
   int                 cartesian_stiffness_mode_; // 0: grav-comp, 1: setpoint-track (NOT USED ANYMORE)
 
   // Instantiate DS controller class
-  std::unique_ptr<PassiveDS> passive_ds_controller;
-  std::unique_ptr<PassiveDS> ang_passive_ds_controller;
+  std::unique_ptr<nc_PassiveDS> passive_ds_controller;
+  std::unique_ptr<nc_PassiveDS> ang_passive_ds_controller;
   double                     desired_damp_eigval_cb_;
   double                     desired_damp_eigval_cb_prev_;
   bool                       new_damping_msg_;

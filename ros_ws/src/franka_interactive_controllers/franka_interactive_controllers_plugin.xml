@@ -19,6 +19,11 @@
       A controller that renders a spring damper system in cartesian space. Gain parameters with the dynamic reconfigure and the desired twist can be modified by publishing a geometry_msg Twist to "/cartesian_impedance_controller/desired_twist".
     </description>
   </class>
+  <class name="franka_interactive_controllers/nc_PassiveDSImpedanceController" type="franka_interactive_controllers::nc_PassiveDSImpedanceController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that renders a spring damper system in cartesian space. Gain parameters with the dynamic reconfigure and the desired twist can be modified by publishing a geometry_msg Twist to "/cartesian_impedance_controller/desired_twist".
+    </description>
+  </class>
 
   <class name="franka_interactive_controllers/JointPositionFrankaController" type="franka_interactive_controllers::JointPositionFrankaController" base_class_type="controller_interface::ControllerBase">
     <description>

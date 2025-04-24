@@ -11,7 +11,7 @@
   <!-- Robot Customization -->
   <arg name="arm_id"      default="panda" doc="Name of the panda robot to spawn" />
   <arg name="use_gripper" default="true"  doc="Should a franka hand be mounted on the flange?" />
-  <arg name="controller"  default="passiveDS_impedance"   doc="Which controller should be started? (One of {cartesian_pose, cartesian_twist, passiveDS}_impedance_controller )" />
+  <arg name="controller"  default="nc_passiveDS_impedance"   doc="Which controller should be started? (One of {cartesian_pose, cartesian_twist, passiveDS}_impedance_controller )" />
   <arg name="x"           default="0"     doc="How far forward to place the base of the robot in [m]?" />
   <arg name="y"           default="0"     doc="How far leftwards to place the base of the robot in [m]?" />
   <arg name="z"           default="0"     doc="How far upwards to place the base of the robot in [m]?" />
@@ -111,6 +111,10 @@
 
   <!-- Start only if passive_ds_impedance_controller is set in "controller"-->
   <include file="$(find franka_interactive_controllers)/launch/passiveDS_impedance_controller.launch" if="$(eval arg('controller') == 'passiveDS_impedance')">
+  </include>
+
+  <!-- Start only if nc_passive_ds_impedance_controller is set in "controller"-->
+  <include file="$(find franka_interactive_controllers)/launch/nc_passiveDS_impedance_controller.launch" if="$(eval arg('controller') == 'nc_passiveDS_impedance')">
   </include>
 
     <!-- automatically load & start the franka_state_controller on launch -->
