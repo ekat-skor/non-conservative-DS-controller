@@ -58,17 +58,28 @@ namespace franka_interactive_controllers
         double eigVal0;
         double eigVal1;
         double desired_damping;
+        // added energy-tank member variables for nonconservative
+        realtype s_;
+        realtype s_max_;
+
+        SmoothRise2d beta_r_;
+        SmoothRiseFall2d beta_s_;
+        SmoothRiseFall alpha_;
+
         Eigen::Matrix3d damping_eigval = Eigen::Matrix3d::Identity();
         Eigen::Matrix3d baseMat = Eigen::Matrix3d::Identity();
 
         Eigen::Matrix3d Dmat = Eigen::Matrix3d::Identity();
         Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
         void updateDampingMatrix(const Eigen::Vector3d &ref_vel);
+        // helper to compute negative gradient of the negative gradient of the lyapunov function
+        Vec gradV(const Vec &x);
 
     public:
-        NCPassiveDS(const double &lam0, const double &lam1);
+        NCPassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz = 0);
         ~NCPassiveDS();
         void set_damping_eigval(const double &lam0, const double &lam1);
+        // changed for nonconservative!!
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel);
         Eigen::Vector3d get_output();
     };
