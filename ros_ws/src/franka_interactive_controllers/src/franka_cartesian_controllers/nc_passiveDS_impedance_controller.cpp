@@ -56,6 +56,14 @@ alpha_(0.0, 0.0 + ds, s_max - ds, s_max)
     // do we want to define the beta and alpha functions here? 
 }
 
+nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1), s_(0.0),
+s_max_(0.0),
+beta_r_(0.0, 0.0, 0.0, 0.0),
+beta_s_(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+alpha_(0.0, 0.0, 0.0, 0.0){
+  set_damping_eigval(lam0,lam1);
+}
+
 nc_PassiveDS::~nc_PassiveDS(){}
 
 
@@ -133,6 +141,16 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
   s_ += sdot * dt;
 
+}
+
+// conservative for angular velocity
+void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
+  // compute damping
+  updateDampingMatrix(des_vel);
+  // dissipate
+  control_output = - Dmat * vel;
+  // compute control
+  control_output += eigVal0*des_vel;
 }
 
 // returns control output used as force to control the robot
@@ -293,6 +311,52 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
   ROS_INFO_STREAM("cartesian_damping_target_: " << cartesian_damping_target_);
 
   // Initialize nc_PassiveDS params
+
+   // // Initialize nc_PassiveDS params
+   s_max_yaml_ = 0.0f;
+   std::vector<double> s_max_value;
+   if (node_handle.getParam("s_max", s_max_value)) {
+     if (s_max_value.size() != 1) {
+       ROS_ERROR(
+         "nc_PassiveDSImpedanceController: Invalid or no s_max parameters provided, "
+         "aborting controller init!");
+       return false;
+     }
+     s_max_yaml_ = s_max_value.at(0);
+     ROS_INFO_STREAM("s_max_yaml_: " << s_max_yaml_);
+   }
+ 
+   ds_yaml_ = 0.0f;
+   std::vector<double> ds_value;
+   if (node_handle.getParam("ds", ds_value)) {
+     if (ds_value.size() != 1) {
+       ROS_ERROR(
+         "nc_PassiveDSImpedanceController: Invalid or no ds parameters provided, "
+         "aborting controller init!");
+       return false;
+     }
+     ds_yaml_ = ds_value.at(0);
+     ROS_INFO_STREAM("ds_yaml_: " << ds_yaml_);
+   }
+   
+   dz_yaml_ = 0.0f;
+   std::vector<double> dz_value;
+   if (node_handle.getParam("dz", dz_value)) {
+     if (dz_value.size() != 1) {
+       ROS_ERROR(
+         "nc_PassiveDSImpedanceController: Invalid or no dz parameters provided, "
+         "aborting controller init!");
+       return false;
+     }
+     dz_yaml_ = dz_value.at(0);
+     ROS_INFO_STREAM("dz_yaml_: " << dz_yaml_);
+   }
+ 
+   s_max_ = s_max_yaml_;
+   ds_ = ds_yaml_;
+   dz_ = dz_yaml_;
+
+   // Initialize damping_eigenvalues
   damping_eigvals_yaml_.setZero();
   std::vector<double> damping_eigvals;
   if (node_handle.getParam("linear_damping_eigenvalues", damping_eigvals)) {
@@ -307,11 +371,10 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
     ROS_INFO_STREAM("Damping Matrix Eigenvalues (from YAML): " << damping_eigvals_yaml_);
   }
 
-
   // Initialize Passive DS controller -- linear
   damping_eigval0_ = damping_eigvals_yaml_(0);
   damping_eigval1_ = damping_eigvals_yaml_(1);
-  passive_ds_controller = std::make_unique<nc_PassiveDS>(100., 100.);
+  passive_ds_controller = std::make_unique<nc_PassiveDS>(100., 100., s_max_, ds_, dz_);
   passive_ds_controller->set_damping_eigval(damping_eigval0_,damping_eigval1_);
 
 
@@ -334,7 +397,7 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
   // Initialize Passive DS controller -- angular
   ang_damping_eigval0_ = ang_damping_eigvals_yaml_(0);
   ang_damping_eigval1_ = ang_damping_eigvals_yaml_(1);
-  ang_passive_ds_controller = std::make_unique<nc_PassiveDS>(5., 5.);
+  ang_passive_ds_controller = std::make_unique<nc_PassiveDS>(5., 5.); // double check if we need to update this
   ang_passive_ds_controller->set_damping_eigval(ang_damping_eigval0_,ang_damping_eigval1_);
 
 
@@ -386,7 +449,6 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
       q_d_nullspace_[i] = q_nullspace.at(i);
     ROS_INFO_STREAM("Desired nullspace position (from YAML): " << std::endl << q_d_nullspace_);
   }
-
 
   /// Getting Dynamic Reconfigure objects for controllers
   dynamic_reconfigure_passive_ds_param_node_ =
@@ -542,6 +604,7 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
 // take measured and desired velocities and feed them into the DS controller 
   passive_ds_controller->set_damping_eigval(real_damping_eigval0_,real_damping_eigval1_);
+  // TODO: CHANGE HERE TO BE NON CONSERVATIVE
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_);
   F_linear_des_ << passive_ds_controller->get_output(); 
   F_ee_des_.head(3) = F_linear_des_;
@@ -579,6 +642,7 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   ROS_WARN_STREAM_THROTTLE(0.5, "Current Angular Velocity Norm:" << dx_angular_msr_.norm());
 
   // Passive DS Impedance Contoller for Angular Velocity Error
+  // THIS CAN BE KEPT CONSERVATIVE
   ang_passive_ds_controller->update(dx_angular_msr_,dx_angular_des_);
   F_angular_des_ << ang_passive_ds_controller->get_output();
   F_ee_des_.tail(3) = F_angular_des_; 

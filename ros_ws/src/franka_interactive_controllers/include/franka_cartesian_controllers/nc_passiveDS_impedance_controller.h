@@ -77,10 +77,12 @@ namespace franka_interactive_controllers
 
     public:
         nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz = 0);
+        nc_PassiveDS(const double &lam0, const double &lam1);
         ~nc_PassiveDS();
         void set_damping_eigval(const double &lam0, const double &lam1);
         // changed for nonconservative!!
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c);
+        void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel);
         Eigen::Vector3d get_output();
     };
     ///////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +123,10 @@ namespace franka_interactive_controllers
         Eigen::Matrix<double, 6, 1> F_ext_hat_;
         Eigen::Matrix<double, 3, 1> damping_eigvals_yaml_;
         Eigen::Matrix<double, 3, 1> ang_damping_eigvals_yaml_;
+
+        double s_max_yaml_;
+        double ds_yaml_;
+        double dz_yaml_;
 
         // whether to load from yaml or use initial robot config
         bool q_d_nullspace_initialized_ = false;
@@ -163,6 +169,10 @@ namespace franka_interactive_controllers
         double real_damping_eigval1_;
         double ang_damping_eigval0_;
         double ang_damping_eigval1_;
+
+        double s_max_;
+        double ds_;
+        double dz_;
 
         // UNUSED SHOULD CLEAN UP!
         bool bVelCommand;
