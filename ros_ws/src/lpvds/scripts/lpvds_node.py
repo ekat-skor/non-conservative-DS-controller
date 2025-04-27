@@ -8,13 +8,12 @@ from scipy.stats import multivariate_normal
 import os
 import sys
 
-# bring your package src/ onto PYTHONPATH
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(__file__, '..', '..', 'src'))
 )
 
-# import your utility functions for quaternion operations
+# utility functions for quaternion operations
 from lpvds.util.quat_tools import riem_log, riem_exp, parallel_transport
 
 
@@ -22,11 +21,11 @@ class LPVDSNode(object):
     def __init__(self):
         rospy.init_node('lpvds_node')
 
-        # publisher for commanded twist
+        # PUBLISH twist to controller 
         self.cmd_pub = rospy.Publisher(
             '/passiveDS/desired_twist', Twist, queue_size=1)
 
-        # subscriber for actual end-effector pose
+        # SUBSCRIBE to actual end-effector pose
         self.current_pose = None
         rospy.Subscriber(
             '/franka_state_controller/ee_pose', Pose,
@@ -37,18 +36,17 @@ class LPVDSNode(object):
                                      '/path/to/default/SE3-LPVDS.json')
         self.load_trained_lpvds(model_path)
 
-        # fire at 100 Hz
+        # 100 Hz
         self.timer = rospy.Timer(rospy.Duration(0.01), self.timer_cb)
 
-
+    # pose message stored 
     def _pose_callback(self, msg: Pose):
         self.current_pose = msg
 
 
     def load_trained_lpvds(self, json_path: str):
         """
-        Read your SE3-LPVDS JSON and pull out exactly the pieces needed by
-        step_linear() and step_angular().
+        Read JSON and pull out learned parameters.
         """
         with open(json_path, 'r') as f:
             data = json.load(f)
@@ -57,10 +55,10 @@ class LPVDSNode(object):
         self.K  = data['K']               
         self.dt = data['dt']              
 
-        # mixing weights, shape=(2*K,)
+        # prior probabilities, shape=(2*K,)
         self.priors = np.array(data['Prior'])
 
-        # Mu may pack both position and orientation in one vector
+        # Mu = center of Gaussians, C = number of components, D = dim of each component 
         Mu = np.array(data['Mu'])
         C  = self.priors.size            
         D  = Mu.size // C                
@@ -91,6 +89,7 @@ class LPVDSNode(object):
         rospy.loginfo(f"Loaded SE3-LPVDS with K={self.K}, dt={self.dt}")
 
 
+    # determines log-posterior probabilities for GMM -- used to determine likelihood of current state x for each mixture component 
     def compute_logprob(self, x, pis, means, covs):
         """
         Vectorized log-posterior probability for a Gaussian mixture:

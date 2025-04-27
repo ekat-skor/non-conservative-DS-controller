@@ -6,14 +6,14 @@
 #include <nc_passiveDS_impedance_controller.h>
 
 #include <cmath>
-#include <memory>
+#include <memory> //for smart pointers 
 
 #include <controller_interface/controller_base.h>
-#include <franka/robot_state.h>
+#include <franka/robot_state.h> // access to the robot's state -- joint positions, velocities, etc 
 #include <pluginlib/class_list_macros.h>
-#include <ros/ros.h>
+#include <ros/ros.h> // for node communication 
 
-#include <pseudo_inversion.h>
+#include <pseudo_inversion.h> 
 #include <kinematics_utils.hpp>
 #include <hardware_interface/joint_command_interface.h>
 #include <control_toolbox/filters.h>
@@ -41,8 +41,16 @@ namespace franka_interactive_controllers {
 //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //|    GNU General Public License for more details.
 //|
-nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1){
+
+
+// UPDATE FOR NONCONSERVATIVE 
+nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1)
+
+
+{
     set_damping_eigval(lam0,lam1);
+
+    // do we want to define the beta and alpha functions here? 
 }
 
 nc_PassiveDS::~nc_PassiveDS(){}
@@ -85,7 +93,9 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 
 
 // UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
-void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
+
+// needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
+void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel) {
     // compute damping
     updateDampingMatrix(des_vel);
     // dissipate
@@ -94,7 +104,11 @@ void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des
     control_output += eigVal0 * des_vel;
 // --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
 }
-Eigen::Vector3d nc_PassiveDS::get_output(){ return control_output;}
+
+// returns control output used as force to control the robot
+Eigen::Vector3d nc_PassiveDS::get_output(){ 
+  return control_output;
+  }
 
 //*************************************************************************************
 
