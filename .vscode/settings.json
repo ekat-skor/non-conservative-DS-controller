@@ -10,5 +10,7 @@
         "*.world": "xml",
         "core": "cpp",
         "complex": "cpp"
-    }
+    },
+    "ros.distro": "noetic",
+    "cmake.sourceDirectory": "/home/yifei/kat/non-conservative-DS-controller/ros_ws/src/franka_ros/franka_hw"
 }
