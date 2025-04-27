@@ -26,161 +26,174 @@
 #include <Eigen/Eigen>
 #include <dynamic_reconfigure/server.h>
 
-namespace franka_interactive_controllers {
+#include "passive_ds_typedefs.h"
+#include "smooth_truncation.h"
 
-//*************************************************************************************
-// nc_PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
-//|
-//|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
-//|    Authors:  Farshad Khadivr (maintainer)
-//|    email:   farshad.khadivar@epfl.ch
-//|    website: lasa.epfl.ch
-//|
-//|    This file is part of iiwa_toolkit.
-//|
-//|    iiwa_toolkit is free software: you can redistribute it and/or modify
-//|    it under the terms of the GNU General Public License as published by
-//|    the Free Software Foundation, either version 3 of the License, or
-//|    (at your option) any later version.
-//|
-//|    iiwa_toolkit is distributed in the hope that it will be useful,
-//|    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//|    GNU General Public License for more details.
-//|
-class nc_PassiveDS
+namespace franka_interactive_controllers
 {
-private:
-    double eigVal0;
-    double eigVal1;
-    double desired_damping;
-    Eigen::Matrix3d damping_eigval = Eigen::Matrix3d::Identity();
-    Eigen::Matrix3d baseMat = Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix3d Dmat = Eigen::Matrix3d::Identity();
-    Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
-    void updateDampingMatrix(const Eigen::Vector3d& ref_vel);
-public:
-    nc_PassiveDS(const double& lam0, const double& lam1);
-    ~nc_PassiveDS();
-    void set_damping_eigval(const double& lam0, const double& lam1);
-    void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel);
-    Eigen::Vector3d get_output();
-};
-///////////////////////////////////////////////////////////////////////////////////
+    //*************************************************************************************
+    // PassiveDS Class taken from https://github.com/epfl-lasa/dual_iiwa_toolkit.git
+    //|
+    //|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    //|    Authors:  Farshad Khadivr (maintainer)
+    //|    email:   farshad.khadivar@epfl.ch
+    //|    website: lasa.epfl.ch
+    //|
+    //|    This file is part of iiwa_toolkit.
+    //|
+    //|    iiwa_toolkit is free software: you can redistribute it and/or modify
+    //|    it under the terms of the GNU General Public License as published by
+    //|    the Free Software Foundation, either version 3 of the License, or
+    //|    (at your option) any later version.
+    //|
+    //|    iiwa_toolkit is distributed in the hope that it will be useful,
+    //|    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    //|    GNU General Public License for more details.
+    //|
+    class nc_PassiveDS
+    {
+    private:
+        double eigVal0;
+        double eigVal1;
+        double desired_damping;
+        // added energy-tank member variables for nonconservative
+        realtype s_;
+        realtype s_max_;
 
+        SmoothRise2d beta_r_;
+        SmoothRiseFall2d beta_s_;
+        SmoothRiseFall alpha_;
 
+        Eigen::Matrix3d damping_eigval = Eigen::Matrix3d::Identity();
+        Eigen::Matrix3d baseMat = Eigen::Matrix3d::Identity();
 
-class nc_PassiveDSImpedanceController : public controller_interface::MultiInterfaceController<
-                                                franka_hw::FrankaModelInterface,
-                                                hardware_interface::EffortJointInterface,
-                                                franka_hw::FrankaStateInterface> {
- public:
-  bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
-  void starting(const ros::Time&) override;
-  void update(const ros::Time&, const ros::Duration& period) override;
+        Eigen::Matrix3d Dmat = Eigen::Matrix3d::Identity();
+        Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
+        void updateDampingMatrix(const Eigen::Vector3d &ref_vel);
+        // helper to compute negative gradient of the negative gradient of the lyapunov function
+        Vec gradV(const Vec &x);
 
- private:
-  // Saturation
-  Eigen::Matrix<double, 7, 1> saturateTorqueRate(
-      const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
-      const Eigen::Matrix<double, 7, 1>& tau_J_d);  // NOLINT (readability-identifier-naming)
+    public:
+        nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz = 0);
+        ~nc_PassiveDS();
+        void set_damping_eigval(const double &lam0, const double &lam1);
+        // changed for nonconservative!!
+        void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c);
+        Eigen::Vector3d get_output();
+    };
+    ///////////////////////////////////////////////////////////////////////////////////
 
-  std::unique_ptr<franka_hw::FrankaStateHandle> state_handle_;
-  std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
-  std::vector<hardware_interface::JointHandle> joint_handles_;
+    class nc_PassiveDSImpedanceController : public controller_interface::MultiInterfaceController<
+                                               franka_hw::FrankaModelInterface,
+                                               hardware_interface::EffortJointInterface,
+                                               franka_hw::FrankaStateInterface>
+    {
+    public:
+        bool init(hardware_interface::RobotHW *robot_hw, ros::NodeHandle &node_handle) override;
+        void starting(const ros::Time &) override;
+        void update(const ros::Time &, const ros::Duration &period) override;
 
-  double dt_ = 0.001;
-  double filter_params_{0.005};
-  double nullspace_stiffness_{20.0};
-  double nullspace_stiffness_target_{20.0};
+    private:
+        // Saturation
+        Eigen::Matrix<double, 7, 1> saturateTorqueRate(
+            const Eigen::Matrix<double, 7, 1> &tau_d_calculated,
+            const Eigen::Matrix<double, 7, 1> &tau_J_d); // NOLINT (readability-identifier-naming)
 
-  const double delta_tau_max_{1.0};
-  Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
-  Eigen::Matrix<double, 6, 6> cartesian_stiffness_target_;
-  Eigen::Matrix<double, 6, 6> cartesian_stiffness_setpoint_ctrl_;
-  Eigen::Matrix<double, 6, 6> cartesian_stiffness_grav_comp_;  
-  Eigen::Matrix<double, 6, 6> cartesian_damping_;
-  Eigen::Matrix<double, 6, 6> cartesian_damping_target_;
-  Eigen::Matrix<double, 7, 1> q_d_nullspace_;
-  Eigen::Matrix<double, 6, 1> F_ext_hat_;
-  Eigen::Matrix<double, 3, 1> damping_eigvals_yaml_; 
-  Eigen::Matrix<double, 3, 1> ang_damping_eigvals_yaml_;
-  
-  // whether to load from yaml or use initial robot config
-  bool q_d_nullspace_initialized_ = false;
-  
-  Eigen::Vector3d position_d_;
-  Eigen::Quaterniond orientation_d_;
-  Eigen::Vector3d position_d_target_;
-  Eigen::Quaterniond orientation_d_target_;
-  Eigen::Vector3d velocity_d_;
-  Eigen::Vector3d velocity_;
+        std::unique_ptr<franka_hw::FrankaStateHandle> state_handle_;
+        std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
+        std::vector<hardware_interface::JointHandle> joint_handles_;
 
-  // Timing
-  ros::Duration elapsed_time;
-  double last_cmd_time;
-  double last_msg_time;
-  double vel_cmd_timeout;
+        double dt_ = 0.001;
+        double filter_params_{0.005};
+        double nullspace_stiffness_{20.0};
+        double nullspace_stiffness_target_{20.0};
 
-  Eigen::Matrix<double, 6, 1> tool_compensation_force_;
-  bool activate_tool_compensation_;
-  bool update_impedance_params_;
-  bool bPassiveOrient_;
+        const double delta_tau_max_{1.0};
+        Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
+        Eigen::Matrix<double, 6, 6> cartesian_stiffness_target_;
+        Eigen::Matrix<double, 6, 6> cartesian_stiffness_setpoint_ctrl_;
+        Eigen::Matrix<double, 6, 6> cartesian_stiffness_grav_comp_;
+        Eigen::Matrix<double, 6, 6> cartesian_damping_;
+        Eigen::Matrix<double, 6, 6> cartesian_damping_target_;
+        Eigen::Matrix<double, 7, 1> q_d_nullspace_;
+        Eigen::Matrix<double, 6, 1> F_ext_hat_;
+        Eigen::Matrix<double, 3, 1> damping_eigvals_yaml_;
+        Eigen::Matrix<double, 3, 1> ang_damping_eigvals_yaml_;
 
-  // For external torque and gravity compensation
-  Eigen::Matrix<double, 7, 1> tau_ext_initial_;
+        // whether to load from yaml or use initial robot config
+        bool q_d_nullspace_initialized_ = false;
 
-  // Initialize DS controller
-  Eigen::Vector3d     dx_linear_des_;
-  Eigen::Vector3d     dx_linear_msr_;
-  Eigen::Vector3d     dx_angular_des_;
-  Eigen::Vector3d     dx_angular_msr_;
-  
-  Eigen::Vector3d     F_linear_des_;     // desired linear force 
-  Eigen::Vector3d     F_angular_des_;    // desired angular force
-  Eigen::VectorXd     F_ee_des_;         // desired end-effector force
-  Eigen::Vector3d     orient_error;
+        Eigen::Vector3d position_d_;
+        Eigen::Quaterniond orientation_d_;
+        Eigen::Vector3d position_d_target_;
+        Eigen::Quaterniond orientation_d_target_;
+        Eigen::Vector3d velocity_d_;
+        Eigen::Vector3d velocity_;
 
+        // Timing
+        ros::Duration elapsed_time;
+        double last_cmd_time;
+        double last_msg_time;
+        double vel_cmd_timeout;
 
-  double              damping_eigval0_;
-  double              damping_eigval1_;
-  double              real_damping_eigval0_;
-  double              real_damping_eigval1_;
-  double              ang_damping_eigval0_;
-  double              ang_damping_eigval1_;
- 
-  // UNUSED SHOULD CLEAN UP!
-  bool                bVelCommand;
-  bool                bDebug;
-  double              smooth_val_;
-  double              rot_stiffness;
-  double              rot_damping;
-  Eigen::Matrix<double, 6, 1> default_cart_stiffness_target_;
-  int                 cartesian_stiffness_mode_; // 0: grav-comp, 1: setpoint-track (NOT USED ANYMORE)
+        Eigen::Matrix<double, 6, 1> tool_compensation_force_;
+        bool activate_tool_compensation_;
+        bool update_impedance_params_;
+        bool bPassiveOrient_;
 
-  // Instantiate DS controller class
-  std::unique_ptr<nc_PassiveDS> passive_ds_controller;
-  std::unique_ptr<nc_PassiveDS> ang_passive_ds_controller;
-  double                     desired_damp_eigval_cb_;
-  double                     desired_damp_eigval_cb_prev_;
-  bool                       new_damping_msg_;
+        // For external torque and gravity compensation
+        Eigen::Matrix<double, 7, 1> tau_ext_initial_;
 
-  // Dynamic reconfigure
-  std::unique_ptr<dynamic_reconfigure::Server<franka_interactive_controllers::passive_ds_paramConfig>>
-      dynamic_server_passive_ds_param_;
-  ros::NodeHandle dynamic_reconfigure_passive_ds_param_node_;
-  void passiveDSParamCallback(franka_interactive_controllers::passive_ds_paramConfig& config,
-                               uint32_t level);
+        // Initialize DS controller
+        Eigen::Vector3d dx_linear_des_;
+        Eigen::Vector3d dx_linear_msr_;
+        Eigen::Vector3d dx_angular_des_;
+        Eigen::Vector3d dx_angular_msr_;
 
-  franka_interactive_controllers::passive_ds_paramConfig config_cfg;
+        Eigen::Vector3d F_linear_des_;  // desired linear force
+        Eigen::Vector3d F_angular_des_; // desired angular force
+        Eigen::VectorXd F_ee_des_;      // desired end-effector force
+        Eigen::Vector3d orient_error;
 
-  // Desired twist subscriber (To take in desired DS velocity)
-  ros::Subscriber sub_desired_twist_;
-  ros::Subscriber sub_desired_damping_;
-  void desiredTwistCallback(const geometry_msgs::TwistConstPtr& msg);
-  void desiredDampingCallback(const std_msgs::Float32Ptr& msg); // In case damping values want to be changed!
+        double damping_eigval0_;
+        double damping_eigval1_;
+        double real_damping_eigval0_;
+        double real_damping_eigval1_;
+        double ang_damping_eigval0_;
+        double ang_damping_eigval1_;
 
-};
+        // UNUSED SHOULD CLEAN UP!
+        bool bVelCommand;
+        bool bDebug;
+        double smooth_val_;
+        double rot_stiffness;
+        double rot_damping;
+        Eigen::Matrix<double, 6, 1> default_cart_stiffness_target_;
+        int cartesian_stiffness_mode_; // 0: grav-comp, 1: setpoint-track (NOT USED ANYMORE)
 
-}  // namespace franka_interactive_controllers
+        // Instantiate DS controller class
+        std::unique_ptr<nc_PassiveDS> passive_ds_controller;
+        std::unique_ptr<nc_PassiveDS> ang_passive_ds_controller;
+        double desired_damp_eigval_cb_;
+        double desired_damp_eigval_cb_prev_;
+        bool new_damping_msg_;
+
+        // Dynamic reconfigure
+        std::unique_ptr<dynamic_reconfigure::Server<franka_interactive_controllers::passive_ds_paramConfig>>
+            dynamic_server_passive_ds_param_;
+        ros::NodeHandle dynamic_reconfigure_passive_ds_param_node_;
+        void passiveDSParamCallback(franka_interactive_controllers::passive_ds_paramConfig &config,
+                                    uint32_t level);
+
+        franka_interactive_controllers::passive_ds_paramConfig config_cfg;
+
+        // Desired twist subscriber (To take in desired DS velocity)
+        ros::Subscriber sub_desired_twist_;
+        ros::Subscriber sub_desired_damping_;
+        void desiredTwistCallback(const geometry_msgs::TwistConstPtr &msg);
+        void desiredDampingCallback(const std_msgs::Float32Ptr &msg); // In case damping values want to be changed!
+    };
+
+} // namespace franka_interactive_controllers

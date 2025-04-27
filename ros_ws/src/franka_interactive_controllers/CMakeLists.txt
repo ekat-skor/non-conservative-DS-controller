@@ -69,6 +69,8 @@ set(H_FILES ${INCLUDE_DIR}/franka_cartesian_controllers/cartesian_pose_impedance
             ${INCLUDE_DIR}/franka_cartesian_controllers/cartesian_pose_franka_controller.h
             ${INCLUDE_DIR}/franka_cartesian_controllers/cartesian_velocity_franka_controller.h            
             ${INCLUDE_DIR}/franka_cartesian_controllers/cartesian_force_controller.h
+            ${INCLUDE_DIR}/franka_cartesian_controllers/smooth_truncation.h
+            ${INCLUDE_DIR}/franka_cartesian_controllers/passive_ds_typedefs.h
             ${INCLUDE_DIR}/franka_joint_controllers/joint_gravity_compensation_controller.h
             ${INCLUDE_DIR}/franka_joint_controllers/joint_impedance_franka_controller.h
             ${INCLUDE_DIR}/franka_joint_controllers/joint_position_franka_controller.h

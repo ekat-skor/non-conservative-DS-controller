@@ -44,9 +44,12 @@ namespace franka_interactive_controllers {
 
 
 // UPDATE FOR NONCONSERVATIVE 
-nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1)
-
-
+nc_PassiveDS::nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz) : eigVal0(lam0), eigVal1(lam1),
+s_(s_max),
+s_max_(s_max),
+beta_r_(0.0, dz, 0.0, ds),
+beta_s_(0.0, 0.0, dz, 0.0, s_max, ds),
+alpha_(0.0, 0.0 + ds, s_max - ds, s_max)
 {
     set_damping_eigval(lam0,lam1);
 
@@ -95,14 +98,41 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 // UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
 
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
-void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel) {
-    // compute damping
-    updateDampingMatrix(des_vel);
-    // dissipate
-    control_output = - Dmat * vel;
-    // compute control
-    control_output += eigVal0 * des_vel;
-// --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
+void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c) {
+//     // compute damping
+//     updateDampingMatrix(des_vel);
+//     // dissipate
+//     control_output = - Dmat * vel;
+//     // compute control
+//     control_output += eigVal0 * des_vel;
+// // --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
+
+  // TODO: this time is currently hardcoded but we should find a way of getting the
+     // real time in simulation vs. real robot situation?
+     realtype dt = 0.01;
+  // Vec ref_vel_c = -gradV(ref_vel);
+  Vec des_vel_nc = des_vel - des_vel_c;
+  updateDampingMatrix(des_vel);
+  // compute control for conservative part
+  control_output += eigVal0 * des_vel_c;
+  // below we add the non-conservative part if allowed
+  // non-conservative energy change
+  double z = vel.dot(des_vel_nc);
+  if (std::abs(z) < 1e-6)
+  {
+    z = 0.0;
+  }
+  control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
+
+  // std::cout<<"value of z:"<< z <<std::endl;
+
+  //  add the non-conservative driving control
+  control_output += damping_eigval(0) * beta_r_(z, s_) * des_vel_nc;
+  // std::cout<<"value of beta_R: "<<beta_r_(z,s_)<<std::endl;
+  //  update storage energy tank
+  double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
+  s_ += sdot * dt;
+
 }
 
 // returns control output used as force to control the robot
