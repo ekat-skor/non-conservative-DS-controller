@@ -92,7 +92,7 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 }
 
 
-// UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
+// UPDATE FOR NONCONSERVATIVE -- see page 10 for controller  ;) 
 
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
 void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel) {
