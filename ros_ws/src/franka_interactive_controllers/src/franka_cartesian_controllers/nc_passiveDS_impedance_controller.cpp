@@ -44,6 +44,7 @@ namespace franka_interactive_controllers {
 
 
 // UPDATE FOR NONCONSERVATIVE 
+// this constructor is for linear controller
 nc_PassiveDS::nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz) : eigVal0(lam0), eigVal1(lam1),
 s_(s_max),
 s_max_(s_max),
@@ -56,6 +57,7 @@ alpha_(0.0, 0.0 + ds, s_max - ds, s_max)
     // do we want to define the beta and alpha functions here? 
 }
 
+// this constructor is for angular controller
 nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1), s_(0.0),
 s_max_(0.0),
 beta_r_(0.0, 0.0, 0.0, 0.0),
@@ -106,15 +108,9 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 // UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
 
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
+// this is the update function for the non-conservative part
+// NOT BEING USED YET
 void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c) {
-//     // compute damping
-//     updateDampingMatrix(des_vel);
-//     // dissipate
-//     control_output = - Dmat * vel;
-//     // compute control
-//     control_output += eigVal0 * des_vel;
-// // --> u_c = -Dx_dot + lambda_1 * f(x) -- this is simply the controller 
-
   // TODO: this time is currently hardcoded but we should find a way of getting the
      // real time in simulation vs. real robot situation?
      realtype dt = 0.01;
@@ -144,6 +140,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
 }
 
 // conservative for angular velocity
+// CURRENTLY BEING USED FOR LINEAR CONTROLLER AS WELL
 void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
   // compute damping
   updateDampingMatrix(des_vel);
