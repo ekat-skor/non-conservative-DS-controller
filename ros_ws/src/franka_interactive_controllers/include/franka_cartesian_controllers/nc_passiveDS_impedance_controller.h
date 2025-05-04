@@ -74,6 +74,7 @@ namespace franka_interactive_controllers
         void updateDampingMatrix(const Eigen::Vector3d &ref_vel);
         // helper to compute negative gradient of the negative gradient of the lyapunov function
         Vec gradV(const Vec &x);
+        ros::Publisher alpha_pub_, beta_r_pub_, beta_s_pub_;
 
     public:
         nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz = 0);
@@ -88,9 +89,9 @@ namespace franka_interactive_controllers
     ///////////////////////////////////////////////////////////////////////////////////
 
     class nc_PassiveDSImpedanceController : public controller_interface::MultiInterfaceController<
-                                               franka_hw::FrankaModelInterface,
-                                               hardware_interface::EffortJointInterface,
-                                               franka_hw::FrankaStateInterface>
+                                                franka_hw::FrankaModelInterface,
+                                                hardware_interface::EffortJointInterface,
+                                                franka_hw::FrankaStateInterface>
     {
     public:
         bool init(hardware_interface::RobotHW *robot_hw, ros::NodeHandle &node_handle) override;
@@ -135,10 +136,9 @@ namespace franka_interactive_controllers
         Eigen::Quaterniond orientation_d_;
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
-        Eigen::Vector3d velocity_d_; // linear vel 
-        Eigen::Vector3d velocity_; // measured vel 
-        Eigen::Vector3d velocity_d_c_; // conservative linear vel 
-
+        Eigen::Vector3d velocity_d_;   // linear vel
+        Eigen::Vector3d velocity_;     // measured vel
+        Eigen::Vector3d velocity_d_c_; // conservative linear vel
 
         // Timing
         ros::Duration elapsed_time;
@@ -208,11 +208,7 @@ namespace franka_interactive_controllers
 
         void desiredTwistCallback(const geometry_msgs::TwistConstPtr &msg);
         void desiredDampingCallback(const std_msgs::Float32Ptr &msg); // In case damping values want to be changed!
-        void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr& msg);
-
+        void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr &msg);
     };
-
-
-
 
 } // namespace franka_interactive_controllers
