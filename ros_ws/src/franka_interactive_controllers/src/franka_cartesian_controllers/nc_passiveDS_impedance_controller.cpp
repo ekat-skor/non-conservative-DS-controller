@@ -764,6 +764,10 @@ void nc_PassiveDSImpedanceController::desiredTwistCallback(
   Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
   Eigen::Vector3d position(transform.translation());
 
+  ROS_INFO_STREAM("Received conservative_des_vel: Linear [" 
+    << velocity_d_.transpose() << "], Angular [" << msg->angular.x << msg->angular.y << msg->angular.z
+    << "]");
+
   double dt_call = 1./1000;
   double int_gain = 200;    
   position_d_target_ << position + velocity_d_*dt_call*int_gain; //Int_gain: Scaling to make it faster! (200 goes way faster than the desired    
@@ -791,9 +795,9 @@ void nc_PassiveDSImpedanceController::conservativeDesVelCallback(
   velocity_d_c_ = conservative_linear_vel; 
 
   // Debugging info
-  ROS_INFO_STREAM("Received conservative_des_vel: Linear [" 
-                  << conservative_linear_vel.transpose() << "], Angular [" 
-                  << conservative_angular_vel.transpose() << "]");
+  // ROS_INFO_STREAM("Received conservative_des_vel: Linear [" 
+  //                 << conservative_linear_vel.transpose() << "], Angular [" 
+  //                 << conservative_angular_vel.transpose() << "]");
 }
 
 
