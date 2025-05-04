@@ -196,7 +196,6 @@ class DAMMLPVDSNode(object):
         return postProb
   
 
-
     def step_linear(self, curr_x, Priors, Mu, Sigma, As, goal):
         """
         Linear component of LPV-DS model for position.
@@ -253,7 +252,10 @@ class DAMMLPVDSNode(object):
 
         cmd = Twist()
         cmd.linear.x, cmd.linear.y, cmd.linear.z = lin_vel
-        cmd.angular.x, cmd.angular.y, cmd.angular.z = ang_vel
+        cmd.angular.x, cmd.angular.y, cmd.angular.z = ang_vel # need to implement tank for angular velocity as well 
+        # cmd.angular.x = 0.0
+        # cmd.angular.y = 0.0
+        # cmd.angular.z = 0.0
         self.cmd_pub.publish(cmd)
 
 if __name__ == '__main__':

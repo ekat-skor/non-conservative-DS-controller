@@ -110,16 +110,21 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
 // this is the update function for the non-conservative part
 // NOT BEING USED YET
-void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c) {
+void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c, double dt) {
   // TODO: this time is currently hardcoded but we should find a way of getting the
      // real time in simulation vs. real robot situation?
-     realtype dt = 0.01;
-  // Vec ref_vel_c = -gradV(ref_vel);
+    
+    control_output = - Dmat * vel; //dissipative term 
+
+
+     //realtype dt = 0.016;
+
   Vec des_vel_nc = des_vel - des_vel_c;
   updateDampingMatrix(des_vel);
+
   // compute control for conservative part
   control_output += eigVal0 * des_vel_c;
-  // below we add the non-conservative part if allowed
+
   // non-conservative energy change
   double z = vel.dot(des_vel_nc);
   if (std::abs(z) < 1e-6)
@@ -136,6 +141,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   //  update storage energy tank
   double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
   s_ += sdot * dt;
+  s_= filters::clamp(s_, 0.0, s_max_);
 
 }
 
@@ -244,6 +250,7 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
   position_d_target_.setZero();
   orientation_d_target_.coeffs() << 0.0, 0.0, 0.0, 1.0;
   velocity_d_.setZero();
+  velocity_d_c_.setZero(); 
 
   // Passive DS Variable Initializatin=on
   dx_linear_des_.resize(3);
@@ -606,11 +613,10 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
 // take measured and desired velocities and feed them into the DS controller 
   passive_ds_controller->set_damping_eigval(real_damping_eigval0_,real_damping_eigval1_);
-  
-  // TODO: CHANGE HERE TO BE NON CONSERVATIVE
-  //passive_ds_controller->update(dx_linear_msr_, velocity_d_c_);
 
-  passive_ds_controller->update(dx_linear_msr_,dx_linear_des_);
+  // TODO: CHANGE HERE TO BE NON CONSERVATIVE
+
+  passive_ds_controller->update(dx_linear_msr_,dx_linear_des_, velocity_d_c_, period.toSec()); // remove velocity_d_c if want to run regular passive DS controller 
   F_linear_des_ << passive_ds_controller->get_output(); 
   F_ee_des_.head(3) = F_linear_des_;
   
@@ -648,8 +654,18 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
   // Passive DS Impedance Contoller for Angular Velocity Error
   // THIS CAN BE KEPT CONSERVATIVE
+
+
   ang_passive_ds_controller->update(dx_angular_msr_,dx_angular_des_);
   F_angular_des_ << ang_passive_ds_controller->get_output();
+
+  // trying this to stop oscillations 
+  // F_angular_des_.setZero();
+
+
+
+
+  
   F_ee_des_.tail(3) = F_angular_des_; 
   ROS_WARN_STREAM_THROTTLE(0.5, "Ang. Damping Eigenvalues:" << ang_damping_eigval0_ << " " << ang_damping_eigval1_);
   ROS_WARN_STREAM_THROTTLE(0.5, "nc_PassiveDS Angular Force:" << F_ee_des_.tail(3).norm());

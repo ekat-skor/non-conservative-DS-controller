@@ -81,7 +81,7 @@ namespace franka_interactive_controllers
         ~nc_PassiveDS();
         void set_damping_eigval(const double &lam0, const double &lam1);
         // changed for nonconservative!!
-        void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c);
+        void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c, double dt);
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel);
         Eigen::Vector3d get_output();
     };
