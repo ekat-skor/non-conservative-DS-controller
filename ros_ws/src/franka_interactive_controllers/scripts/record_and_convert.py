@@ -5,6 +5,13 @@ import subprocess
 from datetime import datetime
 import pandas as pd
 import os
+import signal
+import numpy as np
+from threading import Event
+import json
+from geometry_msgs.msg import Pose
+
+
 
 def main():
     rospy.init_node('record_and_convert')
@@ -13,15 +20,14 @@ def main():
     bag_name = f"/workspace/ros_ws/panda_ee_data_{timestamp}.bag"
     merged_csv = f"/workspace/ros_ws/conservative_panda_ee_full_{timestamp}.csv"
 
+    # Topics to record
     topic_csvs = {
-        "/franka_state_controller/F_ext": f"...",
-        "/passive_ds_impedance_controller/ee_velocity": f"...",
+        "/franka_state_controller/F_ext": f"/workspace/ros_ws/fext_{timestamp}.csv",
+        "/passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
         "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
-        "/passiveDS/desired_twist": f"..."
+        "/passiveDS/desired_twist": f"/workspace/ros_ws/twist_cmd_{timestamp}.csv"
     }
 
-
-    # Step 1: Start recording the bag file
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     def wait_for_topic(topic, timeout=30):
@@ -39,38 +45,76 @@ def main():
 
     wait_for_topic("/passiveDS/desired_twist")
 
+    # Load desired position from JSON
+    with open('/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
+        ds_model = json.load(f)
+    desired_pos = np.array(ds_model['attractor'])
+
+    # Global variable for live actual EE position
+    global actual_pos
+    actual_pos = None
+
+
+    def pose_callback(msg):
+        # print("[DEBUG] pose_callback triggered")
+        global actual_pos
+        actual_pos = np.array([
+            msg.position.x,
+            msg.position.y,
+            msg.position.z
+        ])
+        # print(f"[POSE CALLBACK] Actual position updated: {actual_pos}")
+
+    rospy.Subscriber("/franka_state_controller/ee_pose", Pose, pose_callback)
+
     rospy.loginfo(f"Recording to {bag_name}")
     rosbag_proc = subprocess.Popen(record_cmd)
 
+    # Wait for position convergence or Ctrl+C
+    POSITION_THRESHOLD = 1e-3  # meters
+    stop_event = Event()
+    
+    print(f"Current EE position: {actual_pos}")
     try:
-        rospy.loginfo("Recording... press Ctrl+C to stop.")
-        rospy.spin()
+        rospy.loginfo("Recording... waiting for threshold condition.")
+        while not rospy.is_shutdown():
+            # print(f"Current EE position: {actual_pos}")
+            if actual_pos is not None:
+                dist = np.linalg.norm(actual_pos - desired_pos)
+                if dist < POSITION_THRESHOLD:
+                    print("✅✅✅ THRESHOLD MET: ROBOT REACHED GOAL POSITION. STOPPING RECORDING. ✅✅✅")
+                    stop_event.set()
+                    break
+            rospy.sleep(0.1)
     except rospy.ROSInterruptException:
-        rospy.loginfo("Interrupted, stopping recording...")
-    finally:
-        rosbag_proc.terminate()
-        rosbag_proc.wait()
-        rospy.loginfo("Recording complete.")
+        rospy.loginfo("Interrupted by user.")
 
-    # Step 2: Extract all topics to individual CSVs
+    # Gracefully stop rosbag
+    if rosbag_proc.poll() is None:
+        rosbag_proc.send_signal(signal.SIGINT)
+        try:
+            rosbag_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            rosbag_proc.terminate()
+    rospy.loginfo("Recording complete.")
+
+    # Extract each topic to CSV
     for topic, filename in topic_csvs.items():
         rospy.loginfo(f"Extracting {topic} to {filename}...")
         with open(filename, "w") as f_out:
             subprocess.run(["rostopic", "echo", "-b", bag_name, "-p", topic], stdout=f_out)
 
-
-   # Step 3: Load and merge all CSVs
+    # Merge all CSVs
     try:
-        rospy.loginfo("Loading and merging CSV files...")
+        rospy.loginfo("Merging CSV files...")
 
-        # Read each topic CSV and label the columns
         def load_and_label(path, prefix):
             df = pd.read_csv(path).rename(columns={"%time": "time"})
             df['time'] = pd.to_numeric(df['time'], errors='coerce')
             df.dropna(subset=['time'], inplace=True)
             df = df.sort_values("time")
             df = df.add_prefix(prefix)
-            df = df.rename(columns={f"{prefix}time": "time"})  # Keep 'time' as shared key
+            df = df.rename(columns={f"{prefix}time": "time"})
             return df
 
         df_fext  = load_and_label(topic_csvs["/franka_state_controller/F_ext"], "fext_")
@@ -78,16 +122,13 @@ def main():
         df_pose  = load_and_label(topic_csvs["/franka_state_controller/ee_pose"], "ee_pose_")
         df_twist = load_and_label(topic_csvs["/passiveDS/desired_twist"], "twist_cmd_")
 
-        # Merge all on time using nearest match
         df_merged = pd.merge_asof(df_fext, df_vel, on="time", direction="nearest")
         df_merged = pd.merge_asof(df_merged, df_pose, on="time", direction="nearest")
         df_merged = pd.merge_asof(df_merged, df_twist, on="time", direction="nearest")
 
-        # Save the merged CSV
         df_merged.to_csv(merged_csv, index=False)
         rospy.loginfo(f"✅ Merged CSV saved to: {merged_csv}")
 
-        # Cleanup temporary CSVs
         for file in topic_csvs.values():
             try:
                 os.remove(file)
@@ -97,7 +138,6 @@ def main():
 
     except Exception as e:
         rospy.logerr(f"❌ Failed to merge CSVs: {e}")
-
 
 if __name__ == "__main__":
     main()
