@@ -11,16 +11,18 @@ def main():
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     bag_name = f"/workspace/ros_ws/panda_ee_data_{timestamp}.bag"
-    pose_csv = f"/workspace/ros_ws/panda_ee_pose_{timestamp}.csv"
-    twist_csv = f"/workspace/ros_ws/panda_ee_twist_{timestamp}.csv"
-    merged_csv = f"/workspace/ros_ws/panda_ee_full_{timestamp}.csv"
+    merged_csv = f"/workspace/ros_ws/conservative_panda_ee_full_{timestamp}.csv"
+
+    topic_csvs = {
+        "/franka_state_controller/F_ext": f"...",
+        "/passive_ds_impedance_controller/ee_velocity": f"...",
+        "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
+        "/passiveDS/desired_twist": f"..."
+    }
+
 
     # Step 1: Start recording the bag file
-    record_cmd = [
-        "rosbag", "record", "-O", bag_name,
-        "/franka_state_controller/O_T_EE",
-        "/franka_state_controller/franka_states"
-    ]
+    record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     def wait_for_topic(topic, timeout=30):
         rospy.loginfo(f"Waiting for topic: {topic}")
@@ -50,59 +52,52 @@ def main():
         rosbag_proc.wait()
         rospy.loginfo("Recording complete.")
 
-    # Step 2: Extract both topics to CSV
-    rospy.loginfo("Extracting pose...")
-    with open(pose_csv, "w") as f_pose:
-        subprocess.run(["rostopic", "echo", "-b", bag_name, "-p", "/franka_state_controller/O_T_EE"], stdout=f_pose)
+    # Step 2: Extract all topics to individual CSVs
+    for topic, filename in topic_csvs.items():
+        rospy.loginfo(f"Extracting {topic} to {filename}...")
+        with open(filename, "w") as f_out:
+            subprocess.run(["rostopic", "echo", "-b", bag_name, "-p", topic], stdout=f_out)
 
-    rospy.loginfo("Extracting velocity...")
-    with open(twist_csv, "w") as f_twist:
-        subprocess.run(["rostopic", "echo", "-b", bag_name, "-p", "/franka_state_controller/franka_states"], stdout=f_twist)
 
-    # Step 3: Load and merge CSVs
-    rospy.loginfo("Merging CSV files...")
+   # Step 3: Load and merge all CSVs
     try:
-        df_pose = pd.read_csv(pose_csv)
-        df_twist = pd.read_csv(twist_csv)
+        rospy.loginfo("Loading and merging CSV files...")
 
-        df_pose.rename(columns={"%time": "time"}, inplace=True)
-        df_twist.rename(columns={"%time": "time"}, inplace=True)
+        # Read each topic CSV and label the columns
+        def load_and_label(path, prefix):
+            df = pd.read_csv(path).rename(columns={"%time": "time"})
+            df['time'] = pd.to_numeric(df['time'], errors='coerce')
+            df.dropna(subset=['time'], inplace=True)
+            df = df.sort_values("time")
+            df = df.add_prefix(prefix)
+            df = df.rename(columns={f"{prefix}time": "time"})  # Keep 'time' as shared key
+            return df
 
-        df_pose['time'] = pd.to_numeric(df_pose['time'], errors='coerce')
-        df_twist['time'] = pd.to_numeric(df_twist['time'], errors='coerce')
-        df_pose.dropna(subset=['time'], inplace=True)
-        df_twist.dropna(subset=['time'], inplace=True)
+        df_fext  = load_and_label(topic_csvs["/franka_state_controller/F_ext"], "fext_")
+        df_vel   = load_and_label(topic_csvs["/passive_ds_impedance_controller/ee_velocity"], "ee_vel_")
+        df_pose  = load_and_label(topic_csvs["/franka_state_controller/ee_pose"], "ee_pose_")
+        df_twist = load_and_label(topic_csvs["/passiveDS/desired_twist"], "twist_cmd_")
 
-        df_merged = pd.merge_asof(
-            df_pose.sort_values('time'),
-            df_twist.sort_values('time')[
-                ['time',
-                'field.O_dP_EE_d0', 'field.O_dP_EE_d1', 'field.O_dP_EE_d2',
-                'field.O_dP_EE_c0', 'field.O_dP_EE_c1', 'field.O_dP_EE_c2']
-            ],
-            on='time',
-            direction='nearest'
-)
+        # Merge all on time using nearest match
+        df_merged = pd.merge_asof(df_fext, df_vel, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_pose, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_twist, on="time", direction="nearest")
 
-
-        df_merged.rename(columns={
-            'field.O_dP_EE_d0': 'vx_desired',
-            'field.O_dP_EE_d1': 'vy_desired',
-            'field.O_dP_EE_d2': 'vz_desired',
-            'field.O_dP_EE_c0': 'vx_actual',
-            'field.O_dP_EE_c1': 'vy_actual',
-            'field.O_dP_EE_c2': 'vz_actual'
-        }, inplace=True)
-
-
+        # Save the merged CSV
         df_merged.to_csv(merged_csv, index=False)
-        rospy.loginfo(f"Merged CSV saved to: {merged_csv}")
+        rospy.loginfo(f"✅ Merged CSV saved to: {merged_csv}")
 
-        os.remove(pose_csv)
-        os.remove(twist_csv)
+        # Cleanup temporary CSVs
+        for file in topic_csvs.values():
+            try:
+                os.remove(file)
+                rospy.loginfo(f"Deleted intermediate file: {file}")
+            except FileNotFoundError:
+                rospy.logwarn(f"File not found for deletion: {file}")
 
     except Exception as e:
-        rospy.logerr(f"Failed to merge CSVs: {e}")
+        rospy.logerr(f"❌ Failed to merge CSVs: {e}")
+
 
 if __name__ == "__main__":
     main()
