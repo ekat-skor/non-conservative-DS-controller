@@ -111,15 +111,10 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
 // this is the update function for the non-conservative part
-// NOT BEING USED YET
 void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c, double dt) {
   // TODO: this time is currently hardcoded but we should find a way of getting the
-     // real time in simulation vs. real robot situation?
-    
+     // real time in simulation vs. real robot situation?  
   control_output = - Dmat * vel; //dissipative term 
-
-
-     //realtype dt = 0.016;
 
   Vec des_vel_nc = des_vel - des_vel_c;
   updateDampingMatrix(des_vel);
@@ -134,11 +129,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
     z = 0.0;
   }
   z_ = z;
-  // control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
 
-  // std::cout<<"value of z:"<< z <<std::endl;
-
-  //  add the non-conservative driving control
   control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
   // std::cout<<"value of beta_R: "<<beta_r_(z,s_)<<std::endl;
   //  update storage energy tank
@@ -146,7 +137,6 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   s_ += sdot * dt;
   sdot_ = sdot;
   s_ = filters::clamp(s_, 0.0, s_max_);
-
 }
 
 // conservative for angular velocity
@@ -334,47 +324,34 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
 
    // // Initialize nc_PassiveDS params
    s_max_yaml_ = 0.0f;
-   std::vector<double> s_max_value;
-   if (node_handle.getParam("s_max", s_max_value)) {
-     if (s_max_value.size() != 1) {
-       ROS_ERROR(
-         "nc_PassiveDSImpedanceController: Invalid or no s_max parameters provided, "
+
+   if (!node_handle.getParam("s_max", s_max_yaml_) || s_max_yaml_ <= 0) {
+    ROS_ERROR(
+      "nc_PassiveDSImpedanceController: Invalid or no s_max parameters provided, "
          "aborting controller init!");
-       return false;
-     }
-     s_max_yaml_ = s_max_value.at(0);
-     ROS_INFO_STREAM("s_max_yaml_: " << s_max_yaml_);
-   }
+    return false;
+  }
  
    ds_yaml_ = 0.0f;
-   std::vector<double> ds_value;
-   if (node_handle.getParam("ds", ds_value)) {
-     if (ds_value.size() != 1) {
-       ROS_ERROR(
-         "nc_PassiveDSImpedanceController: Invalid or no ds parameters provided, "
+   if (!node_handle.getParam("ds", ds_yaml_) || ds_yaml_ <= 0) {
+    ROS_ERROR(
+      "nc_PassiveDSImpedanceController: Invalid or no ds parameters provided, "
          "aborting controller init!");
-       return false;
-     }
-     ds_yaml_ = ds_value.at(0);
-     ROS_INFO_STREAM("ds_yaml_: " << ds_yaml_);
-   }
+    return false;
+  }
    
    dz_yaml_ = 0.0f;
-   std::vector<double> dz_value;
-   if (node_handle.getParam("dz", dz_value)) {
-     if (dz_value.size() != 1) {
-       ROS_ERROR(
-         "nc_PassiveDSImpedanceController: Invalid or no dz parameters provided, "
+   if (!node_handle.getParam("dz", dz_yaml_) || dz_yaml_ <= 0) {
+    ROS_ERROR(
+      "nc_PassiveDSImpedanceController: Invalid or no dz parameters provided, "
          "aborting controller init!");
-       return false;
-     }
-     dz_yaml_ = dz_value.at(0);
-     ROS_INFO_STREAM("dz_yaml_: " << dz_yaml_);
-   }
+    return false;
+  }
  
    s_max_ = s_max_yaml_;
    ds_ = ds_yaml_;
    dz_ = dz_yaml_;
+  //  ROS_INFO_STREAM("s_max:" << s_max_yaml_ << " ds:" << ds_yaml_ << " dz:" << dz_yaml_);
 
    // Initialize damping_eigenvalues
   damping_eigvals_yaml_.setZero();

@@ -37,11 +37,11 @@ external_tool_compensation: [0, 0, 0.0, 0, 0.0, 0.0] #Check F_ext
 
 # energy tank storage maximum
 # energy_tank_max: 1000000
-s_max: 750
+s_max: 10000
 
 # ds
 # ds = 0.1 * s_max -- from paper
-ds: 75      #0.3
+ds: 1000      #0.3
 
 # dz
-dz: 7.5  #0.01
+dz: 100  #0.01

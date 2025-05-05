@@ -85,10 +85,9 @@ namespace franka_interactive_controllers
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel);
         Eigen::Vector3d get_output();
 
-        realtype get_s() { return s_; }
+        realtype get_s_() { return s_; }
         realtype get_sdot_() { return sdot_; }
         realtype get_z_() { return z_; }
-        realtype get_s_() { return s_; }
         realtype get_alpha_() { return alpha_(s_); }
         realtype get_beta_r_() { return beta_r_(z_, s_); }
         realtype get_beta_s_() { return beta_s_(z_, s_); }
