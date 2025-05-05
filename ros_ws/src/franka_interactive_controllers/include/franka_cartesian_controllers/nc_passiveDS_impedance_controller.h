@@ -50,7 +50,8 @@ namespace franka_interactive_controllers
     //|    iiwa_toolkit is distributed in the hope that it will be useful,
     //|    but WITHOUT ANY WARRANTY; without even the implied warranty of
     //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    //|    GNU General Public License for more details.pa
+    //|    GNU General Public License for more details.
+
     //|
     class nc_PassiveDS
     {
@@ -60,6 +61,7 @@ namespace franka_interactive_controllers
         double desired_damping;
         // added energy-tank member variables for nonconservative
         realtype s_;
+
         realtype sdot_;
         realtype z_;
         realtype s_max_;
@@ -142,10 +144,10 @@ namespace franka_interactive_controllers
         Eigen::Quaterniond orientation_d_;
         Eigen::Vector3d position_d_target_;
         Eigen::Quaterniond orientation_d_target_;
+
         Eigen::Vector3d velocity_d_; // linear vel 
         Eigen::Vector3d velocity_; // measured vel 
         Eigen::Vector3d velocity_d_c_; // conservative linear vel 
-
 
         // Timing
         ros::Duration elapsed_time;

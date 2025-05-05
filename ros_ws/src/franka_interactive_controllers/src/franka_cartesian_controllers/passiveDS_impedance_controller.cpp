@@ -18,6 +18,9 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <control_toolbox/filters.h>
 
+#include <geometry_msgs/Twist.h>
+
+
 
 
 namespace franka_interactive_controllers {
@@ -93,12 +96,17 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
 
   // *********  Subscribers   ********* //
   sub_desired_twist_ = node_handle.subscribe(
-      "/passiveDS/desired_twist", 20, &PassiveDSImpedanceController::desiredTwistCallback, this,
+      "/passiveDS/desired_twist", 20, &PassiveDSImpedanceController::desiredTwistCallback, this, //this is the topic that needs to be subbed for desired x dot
       ros::TransportHints().reliable().tcpNoDelay());
 
   sub_desired_damping_  = node_handle.subscribe(
       "/passiveDS/desired_damp_eigval", 1000, &PassiveDSImpedanceController::desiredDampingCallback, this,
       ros::TransportHints().reliable().tcpNoDelay());
+
+  //publisher for ee velocity
+  ee_velocity_pub_ = node_handle.advertise<geometry_msgs::Twist>("ee_velocity", 1);
+
+      
 
   // Getting ROSParams
   std::string arm_id;
@@ -113,6 +121,10 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
         "aborting controller init!");
     return false;
   }
+
+  // ADD PUBLISHER FOR TWIST WITH A TWIST TOPC (FOR ACTUAL X DOT)
+  // Calculate ee velocity in update function using dq and jacobian and then publish from update function
+  //make sure to catkin_make after changes
 
   // Getting libranka control interfaces
   auto* model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
@@ -416,6 +428,16 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   Eigen::Matrix<double, 6, 1> velocity;
   Eigen::Matrix<double, 6, 1> velocity_desired_;
   velocity << jacobian * dq;
+
+  geometry_msgs::Twist ee_twist_msg;
+  ee_twist_msg.linear.x  = velocity(0);
+  ee_twist_msg.linear.y  = velocity(1);
+  ee_twist_msg.linear.z  = velocity(2);
+  ee_twist_msg.angular.x = velocity(3);
+  ee_twist_msg.angular.y = velocity(4);
+  ee_twist_msg.angular.z = velocity(5);
+  ee_velocity_pub_.publish(ee_twist_msg);
+
   velocity_desired_.setZero();
   velocity_desired_.head(3) << velocity_d_;
 

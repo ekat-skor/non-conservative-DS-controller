@@ -124,6 +124,12 @@
         respawn="false" output="screen"
         args="franka_state_controller"/>
 
-  
+  <node name="record_and_convert"
+      pkg="franka_interactive_controllers"
+      type="record_and_convert.py"
+      output="screen"
+      launch-prefix="bash" />
+
+
 
 </launch>

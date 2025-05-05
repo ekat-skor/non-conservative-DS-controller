@@ -59,6 +59,7 @@ alpha_(0.0, 0.0 + ds, s_max - ds, s_max)
     // do we want to define the beta and alpha functions here? 
 }
 
+
 // this constructor is for angular controller
 nc_PassiveDS::nc_PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1), s_(0.0),
 s_max_(0.0),
@@ -110,6 +111,7 @@ void nc_PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
 // UPDATE FOR NONCONSERVATIVE -- see page 10 for controller 
 
 // needs to take in lpvds = des_vel and des_vel_c -- from lpvds_node 
+
 // this is the update function for the non-conservative part
 void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c, double dt) {
   // TODO: this time is currently hardcoded but we should find a way of getting the
@@ -135,6 +137,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   //  update storage energy tank
   double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
   s_ += sdot * dt;
+
   sdot_ = sdot;
   s_ = filters::clamp(s_, 0.0, s_max_);
 }
@@ -351,6 +354,7 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
    s_max_ = s_max_yaml_;
    ds_ = ds_yaml_;
    dz_ = dz_yaml_;
+
   //  ROS_INFO_STREAM("s_max:" << s_max_yaml_ << " ds:" << ds_yaml_ << " dz:" << dz_yaml_);
 
    // Initialize damping_eigenvalues
@@ -660,8 +664,6 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
   // Passive DS Impedance Contoller for Angular Velocity Error
   // THIS CAN BE KEPT CONSERVATIVE
-
-
   ang_passive_ds_controller->update(dx_angular_msr_,dx_angular_des_);
   F_angular_des_ << ang_passive_ds_controller->get_output();
 

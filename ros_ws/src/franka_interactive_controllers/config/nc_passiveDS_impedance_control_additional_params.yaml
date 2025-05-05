@@ -35,7 +35,6 @@ q_nullspace: [0.005264432735087578, -0.17525178575515743, 0.08762187454773385, -
 # ***** F_ext wrench to compensate for camera or tool mounted on end-effector ***** #
 external_tool_compensation: [0, 0, 0.0, 0, 0.0, 0.0] #Check F_ext
 
-# energy tank storage maximum
 # energy_tank_max: 1000000
 s_max: 10000
 

@@ -81,6 +81,7 @@ class PassiveDSImpedanceController : public controller_interface::MultiInterface
   void update(const ros::Time&, const ros::Duration& period) override;
 
  private:
+  ros::Publisher ee_velocity_pub_; //for publishing actual robot ee velocity
   // Saturation
   Eigen::Matrix<double, 7, 1> saturateTorqueRate(
       const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
