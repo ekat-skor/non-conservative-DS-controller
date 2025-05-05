@@ -256,6 +256,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   damping_eigval1_ = damping_eigvals_yaml_(1);
   passive_ds_controller = std::make_unique<PassiveDS>(100., 100.);
   passive_ds_controller->set_damping_eigval(damping_eigval0_,damping_eigval1_);
+  
 
 
   //**** Initialize ANGULAR PassiveDS params ****//

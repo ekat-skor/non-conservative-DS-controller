@@ -60,6 +60,8 @@ namespace franka_interactive_controllers
         double desired_damping;
         // added energy-tank member variables for nonconservative
         realtype s_;
+        realtype sdot_;
+        realtype z_;
         realtype s_max_;
 
         SmoothRise2d beta_r_;
@@ -72,8 +74,6 @@ namespace franka_interactive_controllers
         Eigen::Matrix3d Dmat = Eigen::Matrix3d::Identity();
         Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
         void updateDampingMatrix(const Eigen::Vector3d &ref_vel);
-        // helper to compute negative gradient of the negative gradient of the lyapunov function
-        Vec gradV(const Vec &x);
 
     public:
         nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz = 0);
@@ -84,6 +84,14 @@ namespace franka_interactive_controllers
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel, const Eigen::Vector3d &des_vel_c, double dt);
         void update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des_vel);
         Eigen::Vector3d get_output();
+
+        realtype get_s() { return s_; }
+        realtype get_sdot_() { return sdot_; }
+        realtype get_z_() { return z_; }
+        realtype get_s_() { return s_; }
+        realtype get_alpha_() { return alpha_(s_); }
+        realtype get_beta_r_() { return beta_r_(z_, s_); }
+        realtype get_beta_s_() { return beta_s_(z_, s_); }
     };
     ///////////////////////////////////////////////////////////////////////////////////
 
@@ -210,6 +218,13 @@ namespace franka_interactive_controllers
         void desiredDampingCallback(const std_msgs::Float32Ptr &msg); // In case damping values want to be changed!
         void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr& msg);
 
+        std_msgs::Float32 msg_;
+        ros::Publisher alpha_pub_;
+        ros::Publisher beta_r_pub_;
+        ros::Publisher beta_s_pub_;
+        ros::Publisher s_pub_;
+        ros::Publisher sdot_pub_;
+        ros::Publisher z_pub_;
     };
 
 

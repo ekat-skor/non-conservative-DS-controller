@@ -47,6 +47,8 @@ namespace franka_interactive_controllers {
 // this constructor is for linear controller
 nc_PassiveDS::nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz) : eigVal0(lam0), eigVal1(lam1),
 s_(s_max),
+sdot_(0.0),
+z_(0.0),
 s_max_(s_max),
 beta_r_(0.0, dz, 0.0, ds),
 beta_s_(0.0, 0.0, dz, 0.0, s_max, ds),
@@ -114,7 +116,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   // TODO: this time is currently hardcoded but we should find a way of getting the
      // real time in simulation vs. real robot situation?
     
-    control_output = - Dmat * vel; //dissipative term 
+  control_output = - Dmat * vel; //dissipative term 
 
 
      //realtype dt = 0.016;
@@ -131,6 +133,7 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   {
     z = 0.0;
   }
+  z_ = z;
   // control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
 
   // std::cout<<"value of z:"<< z <<std::endl;
@@ -141,7 +144,8 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   //  update storage energy tank
   double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
   s_ += sdot * dt;
-  s_= filters::clamp(s_, 0.0, s_max_);
+  sdot_ = sdot;
+  s_ = filters::clamp(s_, 0.0, s_max_);
 
 }
 
@@ -166,6 +170,13 @@ Eigen::Vector3d nc_PassiveDS::get_output(){
 bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
                                                ros::NodeHandle& node_handle) {
 
+
+  alpha_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/alpha_", 1);
+  beta_r_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/beta_r_", 1);
+  beta_s_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/beta_s_", 1);
+  s_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/s_", 1);
+  sdot_pub_         = node_handle.advertise<std_msgs::Float32>("passive_ds/sdot_", 1);
+  z_pub_      = node_handle.advertise<std_msgs::Float32>("passive_ds/z_", 1);
 
   // *********  Subscribers   ********* //
   sub_desired_twist_ = node_handle.subscribe(
@@ -616,8 +627,25 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
   // TODO: CHANGE HERE TO BE NON CONSERVATIVE
 
+  // publishing data before updating s_
+
+  msg_.data = passive_ds_controller->get_beta_r_(); // beta_r
+  beta_r_pub_.publish(msg_);
+  msg_.data = passive_ds_controller->get_beta_s_(); // beta_s
+  beta_s_pub_.publish(msg_);
+  msg_.data = passive_ds_controller->get_alpha_();    // alpha
+  alpha_pub_.publish(msg_);
+  msg_.data = passive_ds_controller->get_s_();            
+  s_pub_.publish(msg_);
+  msg_.data = passive_ds_controller->get_sdot_();          
+  sdot_pub_.publish(msg_);
+  msg_.data = passive_ds_controller->get_z_();
+  z_pub_.publish(msg_);
+
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_, velocity_d_c_, period.toSec()); // remove velocity_d_c if want to run regular passive DS controller 
-  
+
+  passive_ds_controller->set_damping_eigval(damping_eigval0_,damping_eigval1_);
+
   F_linear_des_ << passive_ds_controller->get_output(); 
   F_ee_des_.head(3) = F_linear_des_;
   
