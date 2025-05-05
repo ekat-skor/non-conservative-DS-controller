@@ -15,7 +15,8 @@ def main():
 
     topic_csvs = {
         "/franka_state_controller/F_ext": f"...",
-        "/passive_ds_impedance_controller/ee_velocity": f"...",
+        # CHANGE THIS LINE IF RUNNING C VS NC
+        "/nc_passive_ds_impedance_controller/ee_velocity": f"...",
         "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
         "/passiveDS/desired_twist": f"..."
     }
@@ -74,7 +75,8 @@ def main():
             return df
 
         df_fext  = load_and_label(topic_csvs["/franka_state_controller/F_ext"], "fext_")
-        df_vel   = load_and_label(topic_csvs["/passive_ds_impedance_controller/ee_velocity"], "ee_vel_")
+        # CHANGE THIS LINE IF RUNNING C VS NC
+        df_vel   = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/ee_velocity"], "ee_vel_")
         df_pose  = load_and_label(topic_csvs["/franka_state_controller/ee_pose"], "ee_pose_")
         df_twist = load_and_label(topic_csvs["/passiveDS/desired_twist"], "twist_cmd_")
 

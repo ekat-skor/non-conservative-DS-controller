@@ -2,8 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-# Load the merged CSV for controller 1
-df1 = pd.read_csv('/workspace/ros_ws/panda_ee_full_20250505_175652.csv')
+# Load the merged CSV for controller 1 // manually change the path to the csv file to match timestamp
+df1 = pd.read_csv('/workspace/ros_ws/conservative_panda_ee_full_20250505_203124.csv')
 
 ## Load csv for baseline
 

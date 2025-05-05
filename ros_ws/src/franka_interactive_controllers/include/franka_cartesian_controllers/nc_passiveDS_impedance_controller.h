@@ -107,6 +107,7 @@ namespace franka_interactive_controllers
         void update(const ros::Time &, const ros::Duration &period) override;
 
     private:
+    
         // Saturation
         Eigen::Matrix<double, 7, 1> saturateTorqueRate(
             const Eigen::Matrix<double, 7, 1> &tau_d_calculated,
@@ -226,6 +227,8 @@ namespace franka_interactive_controllers
         ros::Publisher s_pub_;
         ros::Publisher sdot_pub_;
         ros::Publisher z_pub_;
+        ros::Publisher ee_velocity_pub_; //for publishing actual robot ee velocity
+
     };
 
 

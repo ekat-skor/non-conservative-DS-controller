@@ -17,6 +17,7 @@
 #include <kinematics_utils.hpp>
 #include <hardware_interface/joint_command_interface.h>
 #include <control_toolbox/filters.h>
+#include <geometry_msgs/Twist.h>
 
 
 
@@ -183,6 +184,9 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
   sub_conservative_des_vel_ = node_handle.subscribe(
     "/passiveDS/conservative_des_vel", 20, &nc_PassiveDSImpedanceController::conservativeDesVelCallback, this,
     ros::TransportHints().reliable().tcpNoDelay());
+
+  //publisher for ee velocity
+  ee_velocity_pub_ = node_handle.advertise<geometry_msgs::Twist>("ee_velocity", 1);
 
 
   // Getting ROSParams
@@ -542,6 +546,17 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   velocity << jacobian * dq;
   velocity_desired_.setZero();
   velocity_desired_.head(3) << velocity_d_;
+
+
+  geometry_msgs::Twist ee_twist_msg;
+  ee_twist_msg.linear.x  = velocity(0);
+  ee_twist_msg.linear.y  = velocity(1);
+  ee_twist_msg.linear.z  = velocity(2);
+  ee_twist_msg.angular.x = velocity(3);
+  ee_twist_msg.angular.y = velocity(4);
+  ee_twist_msg.angular.z = velocity(5);
+  ee_velocity_pub_.publish(ee_twist_msg);
+
 
   // Check velocity command -- safety feature: if new velocity command isn't recieved then desired velocity = 0
   elapsed_time += period;
