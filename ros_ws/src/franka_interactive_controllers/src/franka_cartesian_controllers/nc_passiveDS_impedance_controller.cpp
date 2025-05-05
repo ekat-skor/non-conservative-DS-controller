@@ -131,12 +131,12 @@ void nc_PassiveDS::update(const Eigen::Vector3d &vel, const Eigen::Vector3d &des
   {
     z = 0.0;
   }
-  control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
+  // control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
 
   // std::cout<<"value of z:"<< z <<std::endl;
 
   //  add the non-conservative driving control
-  control_output += damping_eigval(0) * beta_r_(z, s_) * des_vel_nc;
+  control_output += eigVal0 * beta_r_(z, s_) * des_vel_nc;
   // std::cout<<"value of beta_R: "<<beta_r_(z,s_)<<std::endl;
   //  update storage energy tank
   double sdot = alpha_(s_) * vel.transpose() * Dmat * vel - beta_s_(z, s_) * eigVal0 * z;
@@ -617,6 +617,7 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   // TODO: CHANGE HERE TO BE NON CONSERVATIVE
 
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_, velocity_d_c_, period.toSec()); // remove velocity_d_c if want to run regular passive DS controller 
+  
   F_linear_des_ << passive_ds_controller->get_output(); 
   F_ee_des_.head(3) = F_linear_des_;
   
