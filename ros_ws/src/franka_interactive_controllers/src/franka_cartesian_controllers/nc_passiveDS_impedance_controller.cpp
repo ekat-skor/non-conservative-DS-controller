@@ -787,9 +787,9 @@ void nc_PassiveDSImpedanceController::desiredTwistCallback(
   Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
   Eigen::Vector3d position(transform.translation());
 
-  ROS_INFO_STREAM("Received conservative_des_vel: Linear [" 
-    << velocity_d_.transpose() << "], Angular [" << msg->angular.x << msg->angular.y << msg->angular.z
-    << "]");
+  // ROS_INFO_STREAM("Received conservative_des_vel: Linear [" 
+  //   << velocity_d_.transpose() << "], Angular [" << msg->angular.x << msg->angular.y << msg->angular.z
+  //   << "]");
 
   double dt_call = 1./1000;
   double int_gain = 200;    

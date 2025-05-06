@@ -14,18 +14,23 @@ from geometry_msgs.msg import Pose
 
 
 def main():
-    rospy.init_node('record_and_convert')
+    rospy.init_node('record_nc_params')
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    bag_name = f"/workspace/ros_ws/panda_ee_data_{timestamp}.bag"
-    merged_csv = f"/workspace/ros_ws/conservative_panda_ee_full_{timestamp}.csv"
+    bag_name = f"/workspace/ros_ws/panda_nc_params_data_{timestamp}.bag"
+    merged_csv = f"/workspace/ros_ws/nc_params_full_{timestamp}.csv"
 
     # Topics to record
+    
     topic_csvs = {
-        "/franka_state_controller/F_ext": f"/workspace/ros_ws/fext_{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
-        "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
-        "/passiveDS/desired_twist": f"/workspace/ros_ws/twist_cmd_{timestamp}.csv"
+        "/franka_state_controller/F_ext": f"...",
+        # CHANGE THIS LINE IF RUNNING C VS NC
+        "/nc_passive_ds_impedance_controller/passive_ds/alpha_": f"/workspace/ros_ws/alpha{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_": f"/workspace/ros_ws/beta_r_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_": f"/workspace/ros_ws/beta_s_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/s_": f"/workspace/ros_ws/s_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/sdot_": f"/workspace/ros_ws/sdot_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/z_": f"/workspace/ros_ws/z_{timestamp}.csv",
     }
 
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
@@ -117,14 +122,20 @@ def main():
             df = df.rename(columns={f"{prefix}time": "time"})
             return df
 
-        df_fext  = load_and_label(topic_csvs["/franka_state_controller/F_ext"], "fext_")
-        df_vel   = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/ee_velocity"], "ee_vel_")
-        df_pose  = load_and_label(topic_csvs["/franka_state_controller/ee_pose"], "ee_pose_")
-        df_twist = load_and_label(topic_csvs["/passiveDS/desired_twist"], "twist_cmd_")
+        
+        df_alpha = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/alpha_"], "alpha_")
+        df_beta_r  = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/beta_r_"], "beta_r_")
+        df_beta_s  = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/beta_s_"], "beta_s_")
+        df_s     = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/s_"], "s_")
+        df_sdot  = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/sdot_"], "sdot_")
+        df_z     = load_and_label(topic_csvs["/nc_passive_ds_impedance_controller/passive_ds/z_"], "z_")
 
-        df_merged = pd.merge_asof(df_fext, df_vel, on="time", direction="nearest")
-        df_merged = pd.merge_asof(df_merged, df_pose, on="time", direction="nearest")
-        df_merged = pd.merge_asof(df_merged, df_twist, on="time", direction="nearest")
+        # Merge all on time using nearest match
+        df_merged = pd.merge_asof(df_alpha, df_beta_r, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_beta_s, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_s, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_sdot, on="time", direction="nearest")
+        df_merged = pd.merge_asof(df_merged, df_z, on="time", direction="nearest")
 
         df_merged.to_csv(merged_csv, index=False)
         rospy.loginfo(f"✅ Merged CSV saved to: {merged_csv}")

@@ -5,6 +5,11 @@
           pkg="franka_interactive_controllers"
           type="record_and_convert.py"
           output="screen" />
+
+      <node name="record_nc_params"
+          pkg="franka_interactive_controllers"
+          type="record_nc_params.py"
+          output="screen" />
   
     <!-- Start controller after -->
     <node name="damm_controller"
