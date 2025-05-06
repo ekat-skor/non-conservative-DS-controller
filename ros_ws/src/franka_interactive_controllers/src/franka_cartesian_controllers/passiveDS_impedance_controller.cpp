@@ -88,6 +88,17 @@ void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_ve
 }
 Eigen::Vector3d PassiveDS::get_output(){ return control_output;}
 
+std::vector<double> PassiveDS::get_DmatFlat() const {
+  std::vector<double> flat(9);
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      flat[i*3 + j] = Dmat(i,j);
+    }
+  }
+  return flat;
+  }
+
+
 //*************************************************************************************
 
 bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
@@ -105,8 +116,8 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
 
   //publisher for ee velocity
   ee_velocity_pub_ = node_handle.advertise<geometry_msgs::Twist>("ee_velocity", 1);
-
-      
+  dmat_pub_  = node_handle.advertise<std_msgs::Float64MultiArray>("passive_ds/Dmat", 1);  
+  eigVal0_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/eigval0", 1); 
 
   // Getting ROSParams
   std::string arm_id;
@@ -268,7 +279,7 @@ bool PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw,
   damping_eigval1_ = damping_eigvals_yaml_(1);
   passive_ds_controller = std::make_unique<PassiveDS>(100., 100.);
   passive_ds_controller->set_damping_eigval(damping_eigval0_,damping_eigval1_);
-  
+
 
 
   //**** Initialize ANGULAR PassiveDS params ****//
@@ -501,6 +512,13 @@ void PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   real_damping_eigval1_ = velocity_d_.norm()<0.00001 ? 0.1 : real_damping_eigval1_;
 
   passive_ds_controller->set_damping_eigval(real_damping_eigval0_,real_damping_eigval1_);
+
+  msg_matrix_.data = passive_ds_controller->get_DmatFlat();
+  dmat_pub_.publish(msg_matrix_);
+  msg_.data = passive_ds_controller->getEigVal0(); // eigval0
+  eigVal0_pub_.publish(msg_);
+
+  
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_);
   F_linear_des_ << passive_ds_controller->get_output(); 
   F_ee_des_.head(3) = F_linear_des_;

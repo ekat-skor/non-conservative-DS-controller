@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Start recorder first -->
-    <node name="record_and_convert"
+    <!-- <node name="record_and_convert"
           pkg="franka_interactive_controllers"
           type="record_and_convert.py"
           output="screen" />
@@ -9,8 +9,12 @@
       <node name="record_nc_params"
           pkg="franka_interactive_controllers"
           type="record_nc_params.py"
-          output="screen" />
+          output="screen" /> -->
   
+          <node name="record_wdot"
+          pkg="franka_interactive_controllers"
+          type="record_wdot.py"
+          output="screen"  />
     <!-- Start controller after -->
     <node name="damm_controller"
           pkg="lpvds_damm"

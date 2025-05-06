@@ -25,6 +25,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <Eigen/Eigen>
 #include <dynamic_reconfigure/server.h>
+#include <std_msgs/Float64MultiArray.h>
 
 namespace franka_interactive_controllers {
 
@@ -66,6 +67,8 @@ public:
     void set_damping_eigval(const double& lam0, const double& lam1);
     void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel);
     Eigen::Vector3d get_output();
+    std::vector<double> get_DmatFlat() const;
+    double getEigVal0() const { return eigVal0; }
 };
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -82,6 +85,8 @@ class PassiveDSImpedanceController : public controller_interface::MultiInterface
 
  private:
   ros::Publisher ee_velocity_pub_; //for publishing actual robot ee velocity
+  ros::Publisher dmat_pub_;
+  ros::Publisher eigVal0_pub_;
   // Saturation
   Eigen::Matrix<double, 7, 1> saturateTorqueRate(
       const Eigen::Matrix<double, 7, 1>& tau_d_calculated,
@@ -179,6 +184,8 @@ class PassiveDSImpedanceController : public controller_interface::MultiInterface
   // Desired twist subscriber (To take in desired DS velocity)
   ros::Subscriber sub_desired_twist_;
   ros::Subscriber sub_desired_damping_;
+  std_msgs::Float32 msg_;
+  std_msgs::Float64MultiArray   msg_matrix_; 
   void desiredTwistCallback(const geometry_msgs::TwistConstPtr& msg);
   void desiredDampingCallback(const std_msgs::Float32Ptr& msg); // In case damping values want to be changed!
 
