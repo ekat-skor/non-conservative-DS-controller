@@ -1,24 +1,24 @@
 <launch>
 
-    <!-- Start recorder first -->
-    <node name="record_and_convert"
-          pkg="franka_interactive_controllers"
-          type="record_and_convert.py"
-          output="screen" />
-
-      <node name="record_nc_params"
+  <!-- Start the recorder first -->
+      <node name="record_and_convert"
+            pkg="franka_interactive_controllers"
+            type="record_and_convert.py"
+            output="screen" />
+  
+        <node name="record_nc_params"
           pkg="franka_interactive_controllers"
           type="record_nc_params.py"
           output="screen" />
-  
-    <!-- Start controller after -->
-    <node name="damm_controller"
-          pkg="lpvds_damm"
-          type="damm_node.py"
-          output="screen">
-      <param name="position_model_json" value="$(find lpvds_damm)/trained_ds/j_shape_position.json" />
-      <param name="orientation_model_json" value="$(find lpvds_damm)/trained_ds/j_shape_orientation.json" />
-    </node>
-  
-  </launch>
-  
+    
+      <!-- Delay controller start to ensure rosbag records from the beginning -->
+      <node name="damm_controller"
+            pkg="lpvds_damm"
+            type="damm_node.py"
+            output="screen"
+            launch-prefix="bash -c 'sleep 2; exec &quot;$0&quot; &quot;$@&quot;'">
+        <param name="position_model_json" value="/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json" />
+        <param name="orientation_model_json" value="/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_orientation.json" />
+      </node>
+    
+    </launch>
