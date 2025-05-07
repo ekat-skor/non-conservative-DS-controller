@@ -22,7 +22,7 @@ def main():
     topic_csvs = {
         "/franka_state_controller/F_ext": f"/workspace/ros_ws/fext_{timestamp}.csv",
         "/passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
-        // "/nc_passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
+        #"/nc_passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
         "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
         "/passiveDS/desired_twist": f"/workspace/ros_ws/twist_cmd_{timestamp}.csv"
     }
