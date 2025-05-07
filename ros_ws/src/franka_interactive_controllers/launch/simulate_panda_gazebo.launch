@@ -130,6 +130,12 @@
       output="screen"
       launch-prefix="bash" />
 
+  <node name="record_nc_params"
+      pkg="franka_interactive_controllers"
+      type="record_nc_params.py"
+      output="screen"
+      launch-prefix="bash" />
+
 
 
 </launch>
