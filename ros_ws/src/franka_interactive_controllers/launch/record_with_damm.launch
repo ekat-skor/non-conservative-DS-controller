@@ -22,8 +22,8 @@
             type="damm_node.py"
             output="screen"
             launch-prefix="bash -c 'sleep 2; exec &quot;$0&quot; &quot;$@&quot;'">
-        <param name="position_model_json" value="/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json" />
-        <param name="orientation_model_json" value="/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_orientation.json" />
+        <param name="position_model_json" value="/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json" />
+        <param name="orientation_model_json" value="/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_orientation.json" />
       </node>
     
     </launch>

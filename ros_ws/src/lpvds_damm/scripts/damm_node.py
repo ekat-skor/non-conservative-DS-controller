@@ -9,7 +9,7 @@ import sys
 from std_msgs.msg import Float64
 
 sys.path.insert(
-    0, '/workspace/ros_ws/src/lpvds_damm/src/util'
+    0, '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/src/util'
 )
 
 # Utility functions for quaternion operations
@@ -53,7 +53,7 @@ class DAMMLPVDSNode(object):
     # for Lyapunov function calculation : V = [(x-x*)^T]P[(x-x*)]
     def load_P_matrix(self):
         """Load the matrix P from the p.json file."""
-        p_file_path = rospy.get_param('~p_json_file', '/workspace/ros_ws/src/lpvds_damm/trained_ds/p.json')  # Hardcoded for testing
+        p_file_path = rospy.get_param('~p_json_file', '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/p.json')  # Hardcoded for testing
         rospy.loginfo(f"Attempting to load P matrix from: {p_file_path}")
         try:
             with open(p_file_path, 'r') as f:
@@ -281,7 +281,7 @@ if __name__ == '__main__':
 # import sys
 
 # sys.path.insert(
-#     0, '/workspace/ros_ws/src/lpvds_damm/src/util/'
+#     0, '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/src/util/'
 # )
 
 # # Utility functions for quaternion operations

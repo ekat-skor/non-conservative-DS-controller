@@ -16,30 +16,30 @@ from geometry_msgs.msg import Pose
 def main():
     rospy.init_node('record_nc_params')
 
-    bag_name = f"/workspace/ros_ws/wdot_params_data_.bag"
-    merged_csv = f"/workspace/ros_ws/wdot_data/wdot_params_full_.csv"
+    bag_name = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/wdot_params_data_.bag"
+    merged_csv = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/wdot_data/wdot_params_full_.csv"
 
     # Topics to record
     
     topic_csvs = {
         # CHANGE THIS LINE IF RUNNING C VS NC
                 # CHANGE THIS LINE IF RUNNING C VS NC
-        "/franka_state_controller/F_ext":                                      f"/workspace/ros_ws/fext_.csv",
-        "/nc_passive_ds_impedance_controller/ee_velocity":                     f"/workspace/ros_ws/eevel_.csv",
-        "/franka_state_controller/ee_pose":                                    f"/workspace/ros_ws/eepose_.csv",
-        "/passiveDS/desired_twist":                                            f"/workspace/ros_ws/twist_cmd_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/alpha_":               f"/workspace/ros_ws/alpha_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_":              f"/workspace/ros_ws/beta_r_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_":              f"/workspace/ros_ws/beta_s_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/z_":                   f"/workspace/ros_ws/z_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/Dmat":                 f"/workspace/ros_ws/Dmat_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/eigval0":              f"/workspace/ros_ws/eigval0_.csv",
+        "/franka_state_controller/F_ext":                                      f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/fext_.csv",
+        "/nc_passive_ds_impedance_controller/ee_velocity":                     f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/eevel_.csv",
+        "/franka_state_controller/ee_pose":                                    f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/eepose_.csv",
+        "/passiveDS/desired_twist":                                            f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/twist_cmd_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/alpha_":               f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/alpha_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_":              f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/beta_r_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_":              f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/beta_s_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/z_":                   f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/z_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/Dmat":                 f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/Dmat_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/eigval0":              f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/eigval0_.csv",
     }
 
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     # load target position
-    with open('/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
+    with open('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
         desired_pos = np.array(json.load(f)["attractor"])
 
     actual_pos = None

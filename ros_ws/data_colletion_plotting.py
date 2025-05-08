@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Load the merged CSV for controller 1 // manually change the path to the csv file to match timestamp
-df1 = pd.read_csv('/workspace/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
+df1 = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
 
 ## Load csv for baseline
 

@@ -16,24 +16,24 @@ import json
 def main():
     rospy.init_node('record_nc_params')
 
-    bag_name = f"/workspace/ros_ws/panda_nc_params_data_.bag"
-    merged_csv = f"/workspace/ros_ws/nc_params_data/nc_params_full_.csv"
+    bag_name = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/panda_nc_params_data_.bag"
+    merged_csv = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/nc_params_data/nc_params_full_.csv"
 
     # Topics to record
     
     topic_csvs = {
-        "/nc_passive_ds_impedance_controller/passive_ds/alpha_": f"/workspace/ros_ws/alpha_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_": f"/workspace/ros_ws/betar_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_": f"/workspace/ros_ws/betas_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/s_": f"/workspace/ros_ws/s_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/sdot_": f"/workspace/ros_ws/sdot_.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/z_": f"/workspace/ros_ws/z_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/alpha_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/alpha_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/betar_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/betas_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/s_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/s_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/sdot_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/sdot_.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/z_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/z_.csv",
     }
 
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     # load target position
-    with open('/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
+    with open('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
         desired_pos = np.array(json.load(f)["attractor"])
 
     actual_pos = None

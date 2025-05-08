@@ -38,5 +38,5 @@
        "source=/home/yifei/kat/mosek,target=/home/developer/mosek,type=bind,consistency=cached",
 
     ],
-    "postCreateCommand": "sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/ && sudo cp /workspace/ros_ws/src/directory/kuka_fri/build/libkuka_fri.a /usr/local/lib/"
+    "postCreateCommand": "sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/ && sudo cp /home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/directory/kuka_fri/build/libkuka_fri.a /usr/local/lib/"
 }

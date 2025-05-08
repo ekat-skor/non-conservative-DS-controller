@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import re
 
 # 1) Load CSV
-fn = '/workspace/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv'
+fn = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv'
 df = pd.read_csv(fn)
 
 # 2) Normalize time
