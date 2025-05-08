@@ -136,11 +136,11 @@
       output="screen"
       launch-prefix="bash" /> -->
 
-  <node name="record_wdot"
+  <!-- <node name="record_wdot"
       pkg="franka_interactive_controllers"
       type="record_wdot.py"
       output="screen"
-      launch-prefix="bash" />
+      launch-prefix="bash" /> -->
 
 
 

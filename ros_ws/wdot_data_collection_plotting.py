@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 1) Load CSV (update to your actual filename)
-fn = '/workspace/ros_ws/wdot_params_full_20250507_215336.csv'
+fn = '/workspace/ros_ws/C_CSVS/conservative_panda_ee_full_.csv'
 df = pd.read_csv(fn)
 
 # 2) Normalize time into seconds
@@ -17,7 +17,7 @@ t = df['t_s']
 
 # EE linear velocity
 vel_cols = sorted(
-    [c for c in df.columns if c.startswith('ee_field.linear')],
+    [c for c in df.columns if c.startswith('eevel_field.linear')],
     key=lambda s: s.split('.')[-1]  # ensure x,y,z order
 )
 
@@ -59,4 +59,3 @@ plt.show()
 # 7) Save the new CSV
 out = fn.replace('.csv', '_cons_wdot.csv')
 df.to_csv(out, index=False)
-print(f"Saved conservative‐wdot CSV to: {out}")
