@@ -36,6 +36,6 @@ for ax, title, y in zip(axes, titles, data):
     ax.grid(True)
 
 axes[-1].set_xlabel('Time [s]')
-fig.suptitle('Passive DS Quantities Over Time', fontsize=16)
+fig.suptitle('Non-Conservative Passive DS Parameters Over Time', fontsize=16)
 plt.tight_layout()
 plt.show()

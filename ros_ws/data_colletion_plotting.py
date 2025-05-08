@@ -45,7 +45,7 @@ plt.plot(df1['time_sec'], df1['eevel_field.linear.z'], label='Actual Z', color='
 plt.plot(df1['time_sec'], df1['twist_cmd_field.linear.z'], '--', label='Desired Z', color='red')
 
 # Labels and legend
-plt.title("End-Effector Velocity vs Desired Velocity (XYZ)")
+plt.title("[Non-Conservative] End-Effector Velocity vs Desired Velocity (XYZ)")
 plt.xlabel("Time [s]")
 plt.ylabel("Velocity [m/s]")
 plt.legend()
