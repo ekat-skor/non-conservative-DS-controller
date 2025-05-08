@@ -9,12 +9,12 @@
         <!-- <node name="record_nc_params"
           pkg="franka_interactive_controllers"
           type="record_nc_params.py"
-          output="screen" /> -->
+          output="screen" />
 
         <node name="record_wdot"
           pkg="franka_interactive_controllers"
           type="record_wdot.py"
-          output="screen"  />
+          output="screen"  /> -->
     
       <!-- Delay controller start to ensure rosbag records from the beginning -->
       <node name="damm_controller"

@@ -27,6 +27,7 @@
     <include file="$(find franka_interactive_controllers)/launch/cartesian_twist_impedance_controller.launch" if="$(eval arg('controller') == 'cartesian_twist_impedance')">
     </include>
 
+<!-- CHECK THIS -->
     <!-- Start only if passive_ds_impedance_controller is set in "controller"-->
     <include file="$(find franka_interactive_controllers)/launch/passiveDS_impedance_controller.launch" if="$(eval arg('controller') == 'passiveDS_impedance')">
       <arg name="params_yaml_file" value="$(find franka_interactive_controllers)/config/passiveDS_impedance_control_additional_params.yaml"/>

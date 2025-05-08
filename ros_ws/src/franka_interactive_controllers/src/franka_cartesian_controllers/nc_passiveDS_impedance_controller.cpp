@@ -157,7 +157,17 @@ void nc_PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des
 // returns control output used as force to control the robot
 Eigen::Vector3d nc_PassiveDS::get_output(){ 
   return control_output;
+}
+
+std::vector<double> nc_PassiveDS::get_DmatFlat() const {
+  std::vector<double> flat(9);
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      flat[i*3 + j] = Dmat(i,j);
+    }
   }
+  return flat;
+}
 
 //*************************************************************************************
 
@@ -171,6 +181,8 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
   s_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/s_", 1);
   sdot_pub_         = node_handle.advertise<std_msgs::Float32>("passive_ds/sdot_", 1);
   z_pub_      = node_handle.advertise<std_msgs::Float32>("passive_ds/z_", 1);
+  dmat_pub_  = node_handle.advertise<std_msgs::Float64MultiArray>("passive_ds/Dmat", 1);  
+  eigVal0_pub_ = node_handle.advertise<std_msgs::Float32>("passive_ds/eigval0", 1); 
 
   // *********  Subscribers   ********* //
   sub_desired_twist_ = node_handle.subscribe(
@@ -637,6 +649,10 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   sdot_pub_.publish(msg_);
   msg_.data = passive_ds_controller->get_z_();
   z_pub_.publish(msg_);
+  msg_matrix_.data = passive_ds_controller->get_DmatFlat();
+  dmat_pub_.publish(msg_matrix_);
+  msg_.data = passive_ds_controller->get_eigVal0(); // eigval0
+  eigVal0_pub_.publish(msg_);
 
   passive_ds_controller->update(dx_linear_msr_,dx_linear_des_, velocity_d_c_, period.toSec()); // remove velocity_d_c if want to run regular passive DS controller 
 

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # ================================
 # Load the merged CSV (update path!)
 # ================================
-df = pd.read_csv('/workspace/ros_ws/nc_params_full_20250506_003812.csv')
+df = pd.read_csv('/workspace/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
 
 # ================================
 # Fix time units
@@ -17,8 +17,8 @@ df['time_sec'] = df['time'] * 1e-9 if df['time'].max() > 1e12 else df['time']
 t = df['time_sec']
 
 alpha  = df['alpha_field.data']
-beta_r = df['beta_r_field.data']
-beta_s = df['beta_s_field.data']
+beta_r = df['betar_field.data']
+beta_s = df['betas_field.data']
 s      = df['s_field.data']
 sdot   = df['sdot_field.data']
 z      = df['z_field.data']

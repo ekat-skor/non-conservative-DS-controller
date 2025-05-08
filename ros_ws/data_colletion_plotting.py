@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Load the merged CSV for controller 1 // manually change the path to the csv file to match timestamp
-df1 = pd.read_csv('/workspace/ros_ws/conservative_panda_ee_full_20250507_215336.csv')
+df1 = pd.read_csv('/workspace/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
 
 ## Load csv for baseline
 
 ##load csv for 
 
 # Extract x, y, z position columns from controller 1
-x_real_1 = df1['ee_field.position.x']
-y_real_1 = df1['ee_field.position.y']
-z_real_1 = df1['ee_field.position.z']
+x_real_1 = df1['eepose_field.position.x']
+y_real_1 = df1['eepose_field.position.y']
+z_real_1 = df1['eepose_field.position.z']
 
 
 # Create 3D plot
@@ -33,15 +33,15 @@ plt.show()
 df1['time_sec'] = df1['time'] * 1e-9 if df1['time'].max() > 1e12 else df1['time']
 plt.figure(figsize=(12, 7))
 # X Velocity
-plt.plot(df1['time_sec'], df1['ee_vel_field.linear.x'], label='Actual X', color='blue')
+plt.plot(df1['time_sec'], df1['eevel_field.linear.x'], label='Actual X', color='blue')
 plt.plot(df1['time_sec'], df1['twist_cmd_field.linear.x'], '--', label='Desired X', color='blue')
 
 # Y Velocity
-plt.plot(df1['time_sec'], df1['ee_vel_field.linear.y'], label='Actual Y', color='green')
+plt.plot(df1['time_sec'], df1['eevel_field.linear.y'], label='Actual Y', color='green')
 plt.plot(df1['time_sec'], df1['twist_cmd_field.linear.y'], '--', label='Desired Y', color='green')
 
 # Z Velocity
-plt.plot(df1['time_sec'], df1['ee_vel_field.linear.z'], label='Actual Z', color='red')
+plt.plot(df1['time_sec'], df1['eevel_field.linear.z'], label='Actual Z', color='red')
 plt.plot(df1['time_sec'], df1['twist_cmd_field.linear.z'], '--', label='Desired Z', color='red')
 
 # Labels and legend

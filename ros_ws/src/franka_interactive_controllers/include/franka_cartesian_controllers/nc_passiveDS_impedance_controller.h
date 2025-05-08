@@ -26,6 +26,8 @@
 #include <Eigen/Eigen>
 #include <dynamic_reconfigure/server.h>
 
+#include <std_msgs/Float64MultiArray.h>
+
 #include "passive_ds_typedefs.h"
 #include "smooth_truncation.h"
 
@@ -93,6 +95,8 @@ namespace franka_interactive_controllers
         realtype get_alpha_() { return alpha_(s_); }
         realtype get_beta_r_() { return beta_r_(z_, s_); }
         realtype get_beta_s_() { return beta_s_(z_, s_); }
+        std::vector<double> get_DmatFlat() const;
+        realtype get_eigVal0() { return eigVal0; }
     };
     ///////////////////////////////////////////////////////////////////////////////////
 
@@ -221,6 +225,8 @@ namespace franka_interactive_controllers
         void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr& msg);
 
         std_msgs::Float32 msg_;
+        std_msgs::Float64MultiArray   msg_matrix_; 
+
         ros::Publisher alpha_pub_;
         ros::Publisher beta_r_pub_;
         ros::Publisher beta_s_pub_;
@@ -228,6 +234,8 @@ namespace franka_interactive_controllers
         ros::Publisher sdot_pub_;
         ros::Publisher z_pub_;
         ros::Publisher ee_velocity_pub_; //for publishing actual robot ee velocity
+        ros::Publisher dmat_pub_;
+        ros::Publisher eigVal0_pub_;
 
     };
 
