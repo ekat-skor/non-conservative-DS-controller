@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Load the merged CSV for controller 1 // manually change the path to the csv file to match timestamp
-df1 = pd.read_csv('/workspace/ros_ws/C_CSVS/conservative_panda_ee_full_.csv')
+df1 = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/conservative_panda_ee_full_.csv')
 
 ## Load csv for baseline
 
@@ -45,7 +45,7 @@ plt.plot(df1['time_sec'], df1['eevel_field.linear.z'], label='Actual Z', color='
 plt.plot(df1['time_sec'], df1['twist_cmd_field.linear.z'], '--', label='Desired Z', color='red')
 
 # Labels and legend
-plt.title("End-Effector Velocity vs Desired Velocity (XYZ)")
+plt.title("[Conservative] End-Effector Velocity vs Desired Velocity (XYZ)")
 plt.xlabel("Time [s]")
 plt.ylabel("Velocity [m/s]")
 plt.legend()

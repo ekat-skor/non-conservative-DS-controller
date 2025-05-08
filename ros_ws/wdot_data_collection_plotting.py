@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 1) Load CSV (update to your actual filename)
-fn = '/workspace/ros_ws/C_CSVS/conservative_panda_ee_full_.csv'
+fn = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/conservative_panda_ee_full_.csv'
 df = pd.read_csv(fn)
 
 # 2) Normalize time into seconds

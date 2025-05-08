@@ -17,26 +17,26 @@ def main():
     rospy.init_node('record_nc_params')
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    bag_name = f"/workspace/ros_ws/panda_nc_params_data_{timestamp}.bag"
-    merged_csv = f"/workspace/ros_ws/nc_params_full_{timestamp}.csv"
+    bag_name = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/panda_nc_params_data_{timestamp}.bag"
+    merged_csv = f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/nc_params_full_{timestamp}.csv"
 
     # Topics to record
     
     topic_csvs = {
         "/franka_state_controller/F_ext": f"...",
         # CHANGE THIS LINE IF RUNNING C VS NC
-        "/nc_passive_ds_impedance_controller/passive_ds/alpha_": f"/workspace/ros_ws/alpha{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_": f"/workspace/ros_ws/beta_r_{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_": f"/workspace/ros_ws/beta_s_{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/s_": f"/workspace/ros_ws/s_{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/sdot_": f"/workspace/ros_ws/sdot_{timestamp}.csv",
-        "/nc_passive_ds_impedance_controller/passive_ds/z_": f"/workspace/ros_ws/z_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/alpha_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/alpha{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_r_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/beta_r_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/beta_s_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/beta_s_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/s_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/s_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/sdot_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/sdot_{timestamp}.csv",
+        "/nc_passive_ds_impedance_controller/passive_ds/z_": f"/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/z_{timestamp}.csv",
     }
 
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     actual_pos = None
-    with open('/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
+    with open('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
         import json
         json_data = json.load(f)
         desired_pos = np.array(json_data["attractor"])

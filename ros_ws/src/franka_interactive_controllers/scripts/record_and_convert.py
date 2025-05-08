@@ -14,7 +14,7 @@ import json
 def main():
     rospy.init_node('record_and_convert')
     # ensure output folder exists
-    base_dir = "/workspace/ros_ws/C_CSVS/"
+    base_dir = "/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/"
     os.makedirs(base_dir, exist_ok=True)
 
     bag_name  = os.path.join(base_dir, f"panda_ee_data_.bag")
@@ -34,7 +34,7 @@ def main():
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())
 
     # load target position
-    with open('/workspace/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
+    with open('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_position.json', 'r') as f:
         desired_pos = np.array(json.load(f)["attractor"])
 
     actual_pos = None
