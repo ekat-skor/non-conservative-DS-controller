@@ -85,7 +85,6 @@ def main():
     except rospy.ROSInterruptException:
         rospy.loginfo("Interrupted by user.")
 
-
     # Gracefully stop rosbag
     if rosbag_proc.poll() is None:
         rosbag_proc.send_signal(signal.SIGINT)
