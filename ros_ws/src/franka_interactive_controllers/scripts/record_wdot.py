@@ -8,23 +8,28 @@ import os
 import signal
 import numpy as np
 from threading import Event
-from geometry_msgs.msg import Pose
 import json
+from geometry_msgs.msg import Pose
+
+
 
 def main():
-    rospy.init_node('record_and_convert')
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    rospy.init_node('record_nc_params')
 
-    bag_name = f"/workspace/ros_ws/panda_ee_data_{timestamp}.bag"
-    merged_csv = f"/workspace/ros_ws/conservative_panda_ee_full_{timestamp}.csv"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    bag_name = f"/workspace/ros_ws/wdot_params_data_{timestamp}.bag"
+    merged_csv = f"/workspace/ros_ws/wdot_params_full_{timestamp}.csv"
 
     # Topics to record
+    
     topic_csvs = {
-        "/franka_state_controller/F_ext": f"/workspace/ros_ws/fext_{timestamp}.csv",
-        "/passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
-        #"/nc_passive_ds_impedance_controller/ee_velocity": f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
-        "/franka_state_controller/ee_pose": f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
-        "/passiveDS/desired_twist": f"/workspace/ros_ws/twist_cmd_{timestamp}.csv"
+        # CHANGE THIS LINE IF RUNNING C VS NC
+        "/franka_state_controller/F_ext":                                      f"/workspace/ros_ws/fext_{timestamp}.csv",
+        "/passive_ds_impedance_controller/ee_velocity":                     f"/workspace/ros_ws/ee_vel_{timestamp}.csv",
+        "/franka_state_controller/ee_pose":                                    f"/workspace/ros_ws/ee_pose_{timestamp}.csv",
+        "/passiveDS/desired_twist":                                            f"/workspace/ros_ws/twist_cmd_{timestamp}.csv",
+        "/passive_ds_impedance_controller/passive_ds/Dmat":                 f"/workspace/ros_ws/Dmat_{timestamp}.csv",
+        "/passive_ds_impedance_controller/passive_ds/eigval0":              f"/workspace/ros_ws/eigval0_{timestamp}.csv",
     }
 
     record_cmd = ["rosbag", "record", "-O", bag_name] + list(topic_csvs.keys())

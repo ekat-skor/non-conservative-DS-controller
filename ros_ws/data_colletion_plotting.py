@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Load the merged CSV for controller 1 // manually change the path to the csv file to match timestamp
-df1 = pd.read_csv('/workspace/ros_ws/conservative_panda_ee_full_20250506_003812.csv')
+df1 = pd.read_csv('/workspace/ros_ws/conservative_panda_ee_full_20250507_215336.csv')
 
 ## Load csv for baseline
 
 ##load csv for 
 
 # Extract x, y, z position columns from controller 1
-x_real_1 = df1['ee_pose_field.position.x']
-y_real_1 = df1['ee_pose_field.position.y']
-z_real_1 = df1['ee_pose_field.position.z']
+x_real_1 = df1['ee_field.position.x']
+y_real_1 = df1['ee_field.position.y']
+z_real_1 = df1['ee_field.position.z']
 
 
 # Create 3D plot
@@ -52,29 +52,3 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-
-
-# ################################# plot for alpha, beta_r, beta_s, s, sdot, z
-
-# # Extract x, y, z position columns from controller 1
-# x_real_1 = df1['ee_pose_field.position.x']
-# y_real_1 = df1['ee_pose_field.position.y']
-# z_real_1 = df1['ee_pose_field.position.z']
-
-
-# # Create 3D plot
-# fig = plt.figure(figsize=(10, 7))
-# ax = fig.add_subplot(111, projection='3d')
-# ax.plot(x_real_1, y_real_1, z_real_1, label='End-Effector Trajectory', color='blue')
-
-# # Axis labels and title
-# ax.set_title("3D End-Effector Position Trajectory")
-# ax.set_xlabel("X [m]")
-# ax.set_ylabel("Y [m]")
-# ax.set_zlabel("Z [m]")
-# ax.legend()
-# plt.tight_layout()
-# plt.show()
-
-
-# df1['time_sec'] = df1['time'] * 1e-9 if df1['time'].max() > 1e12 else df1['time']
