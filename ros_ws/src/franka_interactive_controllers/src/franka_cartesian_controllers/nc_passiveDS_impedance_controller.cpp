@@ -711,6 +711,13 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
 
   // Convert full control wrench to torque
   tau_task << jacobian.transpose() * F_ee_des_;
+
+  // double t = ros::Time::now().toSec();
+  // if (t >= 2.0 && t < 2.1) {
+  //   Eigen::Matrix<double,6,1> w;
+  //   w << 20.0, 0, 0, 0, 0, 0;
+  //   tau_task += jacobian.transpose() * w;
+  // }
   
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
