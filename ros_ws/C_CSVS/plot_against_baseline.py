@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # === Load CSVs ===
 baseline_path = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/baseline.csv'
 conservative_path = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/conservative_panda_ee_full_.csv'
-nonconservative_path = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/non-conservative_panda_ee_full.csv'
+nonconservative_path = '/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/C_CSVS/non-conservative_panda_ee_full_.csv'
 
 baseline_df = pd.read_csv(baseline_path)
 conservative_df = pd.read_csv(conservative_path)
