@@ -12,6 +12,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <ros/node_handle.h>
@@ -224,7 +225,7 @@ namespace franka_interactive_controllers
         void desiredDampingCallback(const std_msgs::Float32Ptr &msg); // In case damping values want to be changed!
         void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr& msg);
 
-        std_msgs::Float32 msg_;
+        std_msgs::Float64 msg_;
         std_msgs::Float64MultiArray   msg_matrix_; 
 
         ros::Publisher alpha_pub_;

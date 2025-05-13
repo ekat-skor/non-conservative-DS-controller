@@ -35,6 +35,12 @@ for ax, title, y in zip(axes, titles, data):
     ax.set_ylabel(title)
     ax.grid(True)
 
+    ax.relim()
+    ax.autoscale_view(tight=True, scalex=False, scaley=True)
+
+
+
+print(f"s  →  min: {s.min():.30f},  max: {s.max():.30f}")
 axes[-1].set_xlabel('Time [s]')
 fig.suptitle('Non-Conservative Passive DS Parameters Over Time', fontsize=16)
 plt.tight_layout()

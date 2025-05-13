@@ -6,15 +6,6 @@
             type="record_and_convert.py"
             output="screen" />
   
-        <!-- <node name="record_nc_params"
-          pkg="franka_interactive_controllers"
-          type="record_nc_params.py"
-          output="screen" />
-
-        <node name="record_wdot"
-          pkg="franka_interactive_controllers"
-          type="record_wdot.py"
-          output="screen"  /> -->
     
       <!-- Delay controller start to ensure rosbag records from the beginning -->
       <node name="damm_controller"
@@ -26,13 +17,11 @@
         <param name="orientation_model_json" value="/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/src/lpvds_damm/trained_ds/j_shape_orientation.json" />
       </node>
 
-      <!-- Apply a disturbance after 3 seconds -->
+      <!-- Apply a disturbance after 3 seconds
       <node name="apply_disturbance"
             pkg="franka_interactive_controllers"
             type="apply_disturbance.py"
-            output="screen"/>
-
-
+            output="screen"/> -->
 
     
     </launch>

@@ -12,6 +12,7 @@ if df['time'].max() > 1e12:
     df['t_s'] = df['time'] * 1e-9
 else:
     df['t_s'] = df['time']
+df['t_s'] -= df['t_s'].iloc[0]
 t = df['t_s']
 
 # 3) Pick out the right columns
@@ -63,8 +64,10 @@ param = (beta_r - beta_s) * lam0 * z
 
 df['wdot'] = -(1 - alpha) * quad + param + dot
 
+
 # 5) Plot only wdot
 plt.figure(figsize=(8,4))
+plt.ylim(-9, 3)
 plt.plot(t, df['wdot'])
 plt.xlabel('Time [s]')
 plt.ylabel('Wdot')
