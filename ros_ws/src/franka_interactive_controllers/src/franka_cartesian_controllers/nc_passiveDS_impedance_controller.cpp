@@ -47,7 +47,7 @@ namespace franka_interactive_controllers {
 // UPDATE FOR NONCONSERVATIVE 
 // this constructor is for linear controller
 nc_PassiveDS::nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz) : eigVal0(lam0), eigVal1(lam1),
-s_(s_max),
+s_(0.0),
 sdot_(0.0),
 z_(0.0),
 s_max_(s_max),

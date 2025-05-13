@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # ================================
 # Load the merged CSV (update path!)
 # ================================
-df = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_ (1).csv')
+df = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
 
 # ================================
 # Fix time units
