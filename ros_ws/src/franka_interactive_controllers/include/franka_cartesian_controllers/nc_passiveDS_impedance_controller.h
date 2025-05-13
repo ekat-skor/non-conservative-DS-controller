@@ -28,6 +28,8 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Bool.h>
+
 
 #include "passive_ds_typedefs.h"
 #include "smooth_truncation.h"
@@ -155,6 +157,8 @@ namespace franka_interactive_controllers
         Eigen::Vector3d velocity_; // measured vel 
         Eigen::Vector3d velocity_d_c_; // conservative linear vel 
 
+        bool apply_torque = false;
+        bool torque_already_applied = false;
         // Timing
         ros::Duration elapsed_time;
         double last_cmd_time;
@@ -220,10 +224,12 @@ namespace franka_interactive_controllers
         ros::Subscriber sub_desired_twist_;
         ros::Subscriber sub_desired_damping_;
         ros::Subscriber sub_conservative_des_vel_;
+        ros::Subscriber sub_apply_torque;
 
         void desiredTwistCallback(const geometry_msgs::TwistConstPtr &msg);
         void desiredDampingCallback(const std_msgs::Float32Ptr &msg); // In case damping values want to be changed!
         void conservativeDesVelCallback(const geometry_msgs::TwistConstPtr& msg);
+        void conservativeApplyTorqueCallback(const std_msgs::Bool::ConstPtr& msg);
 
         std_msgs::Float64 msg_;
         std_msgs::Float64MultiArray   msg_matrix_; 

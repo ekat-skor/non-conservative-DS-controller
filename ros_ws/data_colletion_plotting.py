@@ -92,6 +92,28 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+# 3) --- NEW: External Force at EE ---
+# adjust these column-names if yours differ slightly  
+Fx = df1['fext_field.wrench.force.x']
+Fy = df1['fext_field.wrench.force.y']
+Fz = df1['fext_field.wrench.force.z']
+
+# compute magnitude
+df1['F_ext_mag'] = np.sqrt(Fx**2 + Fy**2 + Fz**2)
+
+plt.figure(figsize=(12, 7))
+plt.plot(df1['time_sec'], Fx, label='F_ext X')
+plt.plot(df1['time_sec'], Fy, label='F_ext Y')
+plt.plot(df1['time_sec'], Fz, label='F_ext Z')
+plt.plot(df1['time_sec'], df1['F_ext_mag'], '--', label='|F_ext|', linewidth=2)
+
+plt.title("External Force at End-Effector")
+plt.xlabel("Time [s]")
+plt.ylabel("Force [N]")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
 # ================================
 # Uncomment this section once the baseline CSV is available

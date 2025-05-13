@@ -129,4 +129,11 @@
       output="screen"
       launch-prefix="bash" />
 
+  <node name="apply_disturbance"
+      pkg="franka_interactive_controllers"
+      type="apply_disturbance.py"
+      output="screen"
+      launch-prefix="bash"/>
+
+
 </launch>

@@ -1,37 +1,50 @@
 #!/usr/bin/env python3
 
 import rospy
-import time
-from geometry_msgs.msg import Wrench, Point
+from std_msgs.msg import Bool
 from gazebo_msgs.srv import ApplyBodyWrench, ApplyBodyWrenchRequest
+from geometry_msgs.msg import Point, Wrench
 
 def main():
-    try:
-        rospy.loginfo("🚀 Starting apply_disturbance node...")
-        rospy.init_node("disturbance_applier", anonymous=True)
-        rospy.loginfo("🟢 Node initialized.")
-        
-        rospy.wait_for_service("/gazebo/apply_body_wrench")
-        rospy.loginfo("🛠️ Wrench service is available.")
+    rospy.init_node("apply_disturbance")
 
-        apply_wrench = rospy.ServiceProxy("/gazebo/apply_body_wrench", ApplyBodyWrench)
+    # 1) Advertise a latched Bool publisher
+    apply_torque_pub = rospy.Publisher(
+        '/passiveDS/apply_torque',
+        Bool,
+        queue_size=1,
+        latch=True
+    )
+    # let connections be established
+    rospy.sleep(0.2)
 
-        rospy.loginfo("⏳ Waiting 5 seconds before applying disturbance...")
-        time.sleep(4.0)
+    # 2) Start with torque OFF
+    apply_torque_pub.publish(Bool(data=False))
+    rospy.loginfo("🔧 apply_torque = False")
 
-        req = ApplyBodyWrenchRequest()
-        req.body_name = "panda::panda_hand"  # Apply to end-effector
-        req.reference_frame = "panda::panda_hand"  # Apply in local frame
-        req.reference_point = Point(0.0, 0.0, 0.0)
-        req.wrench.force.x = 40.0
-        req.wrench.force.y = 10.0
-        req.wrench.force.z = 0.0
-        req.duration.nsecs = int(1 * 1e9)  # Apply for 0.65 seconds
+    # wait however long before triggering your disturbance
+    rospy.loginfo("⏳ Waiting 5 seconds before toggling torque ON → OFF")
+    rospy.sleep(3.0)
 
-        apply_wrench(req)
-        rospy.loginfo("✅ EXTERNAL DISTURBANCE APPLIED TO PANDA's HAND.")
-    except Exception as e:
-        rospy.logerr(f"❌ ERROR IN DISTURBANCE SCRIPT: {e}")
+    # 3) Turn it ON (controller will catch this once)
+    apply_torque_pub.publish(Bool(data=True))
+    rospy.loginfo("🔧 apply_torque = True")
+
+    # small pause so the controller has time to see the True
+    rospy.sleep(1.0)
+
+    # 4) Immediately turn it back OFF
+    apply_torque_pub.publish(Bool(data=False))
+    rospy.loginfo("🔧 apply_torque = False again")
+
+    # (If you also want to call ApplyBodyWrench, you can do it here,
+    #  once the service is ready.)
+    # rospy.wait_for_service('/gazebo/apply_body_wrench')
+    # apply_wrench = rospy.ServiceProxy('/gazebo/apply_body_wrench', ApplyBodyWrench)
+    # req = ApplyBodyWrenchRequest(...)
+    # apply_wrench(req)
+
+    rospy.loginfo("✅ Disturbance toggle complete, node is done.")
 
 if __name__ == "__main__":
     main()

@@ -47,7 +47,7 @@ namespace franka_interactive_controllers {
 // UPDATE FOR NONCONSERVATIVE 
 // this constructor is for linear controller
 nc_PassiveDS::nc_PassiveDS(const double &lam0, const double &lam1, double s_max, double ds, double dz) : eigVal0(lam0), eigVal1(lam1),
-s_(0.0),
+s_(s_max),
 sdot_(0.0),
 z_(0.0),
 s_max_(s_max),
@@ -196,6 +196,10 @@ bool nc_PassiveDSImpedanceController::init(hardware_interface::RobotHW* robot_hw
 
   sub_conservative_des_vel_ = node_handle.subscribe(
     "/passiveDS/conservative_des_vel", 20, &nc_PassiveDSImpedanceController::conservativeDesVelCallback, this,
+    ros::TransportHints().reliable().tcpNoDelay());
+
+  sub_apply_torque = node_handle.subscribe(
+    "/passiveDS/apply_torque", 20, &nc_PassiveDSImpedanceController::conservativeApplyTorqueCallback, this,
     ros::TransportHints().reliable().tcpNoDelay());
 
   //publisher for ee velocity
@@ -712,12 +716,15 @@ void nc_PassiveDSImpedanceController::update(const ros::Time& /*time*/,
   // Convert full control wrench to torque
   tau_task << jacobian.transpose() * F_ee_des_;
 
-  // double t = ros::Time::now().toSec();
-  // if (t >= 2.0 && t < 2.1) {
-  //   Eigen::Matrix<double,6,1> w;
-  //   w << 20.0, 0, 0, 0, 0, 0;
-  //   tau_task += jacobian.transpose() * w;
-  // }
+  double t = ros::Time::now().toSec();
+  // apply_torque
+  if (apply_torque) {
+    // torque_already_applied = true;
+    // apply_torque = false;
+    Eigen::Matrix<double,6,1> w;
+    w << -10.0, 0, 0, 0, 0, 0;
+    tau_task += jacobian.transpose() * w;
+  }
   
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
@@ -846,7 +853,13 @@ void nc_PassiveDSImpedanceController::conservativeDesVelCallback(
   //                 << conservative_angular_vel.transpose() << "]");
 }
 
-
+void nc_PassiveDSImpedanceController::conservativeApplyTorqueCallback(
+  const std_msgs::Bool::ConstPtr& msg) {
+    apply_torque = msg->data;
+  
+    ROS_INFO_STREAM_THROTTLE(1.0,
+      "Conservative‐torque flag: " << (apply_torque ? "ON" : "OFF"));
+}
 
 
 }  // namespace franka_interactive_controllers
