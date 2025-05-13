@@ -12,6 +12,7 @@ if df['time'].max() > 1e12:
 else:
     df['t_s'] = df['time']
 t = df['t_s']
+df['t_s'] -= df['t_s'].iloc[0]
 
 # 3) Identify the columns we need
 

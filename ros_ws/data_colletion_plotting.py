@@ -69,6 +69,7 @@ plt.show()
 
 
 df1['time_sec'] = df1['time'] * 1e-9 if df1['time'].max() > 1e12 else df1['time']
+df1['time_sec'] -= df1['time_sec'].iloc[0]
 plt.figure(figsize=(12, 7))
 # X Velocity
 plt.plot(df1['time_sec'], df1['eevel_field.linear.x'], label='Actual X', color='blue')
