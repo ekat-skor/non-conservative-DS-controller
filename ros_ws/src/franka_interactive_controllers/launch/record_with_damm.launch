@@ -18,10 +18,10 @@
       </node>
 
       <!-- Apply a disturbance after 3 seconds -->
-      <node name="apply_disturbance"
+      <!-- <node name="apply_disturbance"
             pkg="franka_interactive_controllers"
             type="apply_disturbance.py"
-            output="screen"/>
+            output="screen"/> -->
 
     
     </launch>
