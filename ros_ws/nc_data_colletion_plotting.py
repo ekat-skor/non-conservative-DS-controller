@@ -4,17 +4,19 @@ import matplotlib.pyplot as plt
 # ================================
 # Load the merged CSV (update path!)
 # ================================
-df = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_.csv')
+df = pd.read_csv('/home/tianyu/ncds_ws/non-conservative-DS-controller/ros_ws/NC_CSVS/non-conservative_panda_ee_full_ (1).csv')
 
 # ================================
 # Fix time units
 # ================================
 df['time_sec'] = df['time'] * 1e-9 if df['time'].max() > 1e12 else df['time']
+df['time_sec'] -= df['time_sec'].iloc[0]
 
 # ================================
 # Extract data
 # ================================
 t = df['time_sec']
+
 
 alpha  = df['alpha_field.data']
 beta_r = df['betar_field.data']

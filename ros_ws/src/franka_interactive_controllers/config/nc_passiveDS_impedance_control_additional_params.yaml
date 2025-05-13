@@ -36,11 +36,11 @@ q_nullspace: [0.005264432735087578, -0.17525178575515743, 0.08762187454773385, -
 external_tool_compensation: [0, 0, 0.0, 0, 0.0, 0.0] #Check F_ext
 
 # energy_tank_max: 1000000
-s_max: 10000
+s_max: 10
 
 # ds
 # ds = 0.1 * s_max -- from paper
-ds: 1000      #0.3
+ds: 1      #0.3
 
 # dz
-dz: 100  #0.01
+dz: 0.1  #0.01
